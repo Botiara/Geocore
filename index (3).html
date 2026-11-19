@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GeoCore v2.0 — Атлас и Тренажёр</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data.js"></script>
+  <style>
+    :root {
+      --bg: #0b1116; --card: #131c24; --border: #22303c;
+      --accent: #00e599; --blue: #38bdf8; --warn: #fbbf24; --danger: #ef4444;
+      --text: #f1f5f9; --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 12px; padding-bottom: 84px; }
+
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .sub { font-size: 11px; color: var(--accent); font-weight: 800; letter-spacing: 0.6px; }
+    h1 { font-size: 20px; font-weight: 800; }
+    .stats-row { display: flex; gap: 6px; }
+    .badge { background: var(--card); border: 1px solid var(--border); padding: 5px 10px; border-radius: 12px; text-align: center; }
+    .badge span { display: block; font-size: 9px; color: var(--muted); text-transform: uppercase; }
+    .badge b { color: var(--accent); font-size: 14px; }
+
+    .nav-tabs {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      background: rgba(19, 28, 36, 0.96); backdrop-filter: blur(10px);
+      padding: 8px 12px 12px; border-top: 1px solid var(--border);
+    }
+    .nav-btn {
+      background: transparent; border: 1px solid transparent; color: var(--muted);
+      padding: 8px 4px; border-radius: 12px; font-size: 12px; font-weight: 700;
+      display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; transition: 0.2s;
+    }
+    .nav-btn .ico { font-size: 18px; }
+    .nav-btn.active { background: rgba(0, 229, 153, 0.12); color: var(--accent); border-color: rgba(0, 229, 153, 0.3); }
+
+    .hidden { display: none !important; }
+
+    .search-input {
+      width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text);
+      padding: 10px 14px; border-radius: 12px; font-size: 14px; margin-bottom: 8px; outline: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .layers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+    .layer-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 7px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .layer-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0, 229, 153, 0.08); }
+    .filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; scrollbar-width: none; }
+    .filters::-webkit-scrollbar { display: none; }
+    .f-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
+    .f-btn.active { background: var(--accent); color: #051b11; font-weight: 700; border-color: var(--accent); }
+
+    #studyMap, #gameMap { height: 46vh; min-height: 280px; border-radius: 16px; border: 1px solid var(--border); z-index: 1; }
+    .info-card { margin-top: 10px; background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 14px; padding: 14px; }
+    .info-cat { font-size: 11px; color: var(--accent); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+    .info-title { font-size: 17px; font-weight: 800; margin-bottom: 5px; }
+    .info-desc { font-size: 13px; line-height: 1.45; color: #cbd5e1; }
+
+    .mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .mode-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; cursor: pointer; text-align: left; }
+    .mode-card.active { border-color: var(--blue); background: rgba(56, 189, 248, 0.08); }
+    .mode-card h3 { font-size: 14px; color: #fff; margin-bottom: 3px; }
+    .mode-card p { font-size: 11px; color: var(--muted); }
+
+    .target-banner {
+      background: linear-gradient(135deg, #13232e, #16202a); border: 1px solid var(--blue);
+      border-radius: 14px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .target-banner b { font-size: 15px; color: var(--blue); display: block; }
+    .btn-main { background: var(--accent); color: #041d13; border: none; padding: 9px 14px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+
+    .quiz-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+    .opt-btn { width: 100%; text-align: left; background: #18232d; border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 12px; font-size: 14px; margin-top: 8px; cursor: pointer; }
+    .opt-btn.correct { background: rgba(0, 229, 153, 0.18); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+    .opt-btn.wrong { background: rgba(239, 68, 68, 0.18); border-color: var(--danger); color: #fca5a5; }
+
+    .guide-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+    .guide-cat { font-size: 11px; color: var(--blue); font-weight: 700; margin-bottom: 4px; }
+    .guide-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+    .guide-rule { font-size: 13px; line-height: 1.45; color: #cbd5e1; margin-bottom: 8px; }
+    .guide-trap { font-size: 12px; color: var(--warn); background: rgba(251, 191, 36, 0.08); border-left: 3px solid var(--warn); padding: 6px 10px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="sub">GEOCORE // АТЛАС И ТРЕНАЖЁР</div>
+      <h1>География мира</h1>
+    </div>
+    <div class="stats-row">
+      <div class="badge"><span>СЕРИЯ</span><b id="streakVal">0🔥</b></div>
+      <div class="badge"><span>ОЧКИ</span><b id="scoreVal">0</b></div>
+    </div>
+  </div>
+
+  <!-- 1. ВКЛАДКА: ИЗУЧАТЬ -->
+  <div id="view-study">
+    <input type="text" class="search-input" id="mapSearch" placeholder="🔍 Найти город, море или океан..." oninput="drawStudyMarkers()" />
+    <div class="layers">
+      <button class="layer-btn active" onclick="setLayer('street', this)">🗺️ Подробная</button>
+      <button class="layer-btn" onclick="setLayer('dark', this)">🌑 Тёмная</button>
+      <button class="layer-btn" onclick="setLayer('relief', this)">⛰️ Рельеф</button>
+    </div>
+    <div class="filters" id="studyFilters"></div>
+    <div id="studyMap"></div>
+    <div class="info-card" id="infoCard">
+      <div class="info-cat" id="infoCat">КАРТОЧКА ОБЪЕКТА</div>
+      <div class="info-title" id="infoTitle">Выбери точку на карте</div>
+      <div class="info-desc" id="infoDesc">Нажми на любой маркер или введи название в поиск выше — карта перелетит к объекту и покажет справку.</div>
+    </div>
+  </div>
+
+  <!-- 2. ВКЛАДКА: ИГРАТЬ -->
+  <div id="view-play" class="hidden">
+    <div class="mode-switch">
+      <div class="mode-card active" id="mCard-sniper" onclick="selectGameMode('sniper')">
+        <h3>🎯 Гео-Снайпер</h3>
+        <p>Найди объект кликом по карте на точность</p>
+      </div>
+      <div class="mode-card" id="mCard-quiz" onclick="selectGameMode('quiz')">
+        <h3>⚡ Блиц-Тест</h3>
+        <p>Вопросы с выбором ответа и комбо-очками</p>
+      </div>
+    </div>
+
+    <div id="game-sniper">
+      <div class="target-banner">
+        <div>
+          <span style="font-size:11px;color:#94a3b8">НАЙДИ НА КАРТЕ:</span>
+          <b id="sniperTarget">Загрузка...</b>
+        </div>
+        <button class="btn-main" onclick="nextSniperRound()">Дальше ➔</button>
+      </div>
+      <div id="gameMap"></div>
+      <div class="info-card" id="sniperFeedback" style="border-left-color:#38bdf8">
+        <div class="info-cat" style="color:#38bdf8">ПРАВИЛА СНАЙПЕРА</div>
+        <div class="info-desc">Ткни в то место на карте, где находится загаданный объект. Чем ближе к цели (в км), тем больше очков!</div>
+      </div>
+    </div>
+
+    <div id="game-quiz" class="hidden">
+      <div class="quiz-box" id="quizContainer"></div>
+    </div>
+  </div>
+
+  <!-- 3. ВКЛАДКА: СПРАВОЧНИК -->
+  <div id="view-guide" class="hidden">
+    <input type="text" class="search-input" id="guideSearch" placeholder="🔍 Поиск по правилам (азимут, циклон, почвы...)" oninput="renderGuide()" />
+    <div class="filters" id="guideFilters"></div>
+    <div id="guideList"></div>
+  </div>
+
+  <nav class="nav-tabs">
+    <button class="nav-btn active" onclick="switchView('study', this)"><span class="ico">🌍</span>Изучать</button>
+    <button class="nav-btn" onclick="switchView('play', this)"><span class="ico">🎮</span>Играть</button>
+    <button class="nav-btn" onclick="switchView('guide', this)"><span class="ico">📚</span>Справочник</button>
+  </nav>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) { tg.expand(); tg.ready(); }
+
+    let score = Number(localStorage.getItem('gc_score') || 0);
+    let streak = 0;
+    document.getElementById('scoreVal').textContent = score;
+
+    function addScore(pts, win = true) {
+      score += pts;
+      streak = win ? streak + 1 : 0;
+      localStorage.setItem('gc_score', score);
+      document.getElementById('scoreVal').textContent = score;
+      document.getElementById('streakVal').textContent = streak + '🔥';
+    }
+
+    const allPlaces = typeof places !== 'undefined' ? places : [];
+    const allQuestions = typeof questions !== 'undefined' ? questions : [];
+
+    const guideItems = [
+      { cat: "Карты", title: "Широта и долгота", rule: "Широта (с.ш./ю.ш.) считается от экватора (0°–90°). Долгота (в.д./з.д.) — от Гринвича (0°–180°).", trap: "Чукотка восточнее 180° меридиана имеет западную долготу (з.д.)!" },
+      { cat: "Карты", title: "Азимут движения", rule: "Угол по часовой стрелке от направления на Север (0°): В = 90°, Ю = 180°, З = 270°.", trap: "Центр транспортира всегда ставится в точку отправления." },
+      { cat: "Климат", title: "Циклон и антициклон", rule: "Циклон (Н) — воздух поднимается, облака и осадки. Антициклон (В) — воздух опускается, ясно и без осадков.", trap: "Ветер всегда дует из области высокого давления (В) в низкое (Н)." },
+      { cat: "Природа", title: "Смена почв с севера на юг", rule: "Тундра (глеевые) → Тайга (подзолистые) → Степи (чернозёмы) → Пустыни (бурые).", trap: "Самые плодородные чернозёмы образуются именно в степях, а не в лесах." },
+      { cat: "Океан", title: "Тёплые и холодные течения", rule: "Тёплые течения несут влагу и осадки на берег (Гольфстрим). Холодные — вызывают засухи и береговые пустыни (Перуанское).", trap: "Температура течения определяется не градусами, а сравнением с окружающей водой." },
+      { cat: "Литосфера", title: "Сейсмические пояса", rule: "Землетрясения и вулканы возникают на границах литосферных плит (Тихоокеанское огненное кольцо, Альпийско-Гималайский пояс).", trap: "На древних платформах (Русская, Сибирская) разрушительных землетрясений нет." }
+    ];
+
+    function switchView(view, btn) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ['study', 'play', 'guide'].forEach(v => document.getElementById('view-' + v).classList.add('hidden'));
+      document.getElementById('view-' + view).classList.remove('hidden');
+
+      if (view === 'study') setTimeout(() => studyMap.invalidateSize(), 100);
+      if (view === 'play') {
+        setTimeout(() => { gameMap.invalidateSize(); if (!currentTarget) nextSniperRound(); }, 100);
+      }
+      if (view === 'guide') renderGuide();
+    }
+
+    // 1. КАРТА ИЗУЧЕНИЯ
+    const studyMap = L.map('studyMap').setView([30, 40], 2);
+    const tileUrls = {
+      street: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      dark: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      relief: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}'
+    };
+    let activeTile = L.tileLayer(tileUrls.street).addTo(studyMap);
+
+    function setLayer(type, btn) {
+      document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      studyMap.removeLayer(activeTile);
+      activeTile = L.tileLayer(tileUrls[type]).addTo(studyMap);
+    }
+
+    const studyLayer = L.layerGroup().addTo(studyMap);
+    const regions = ['Все', ...new Set(allPlaces.map(p => p.region))];
+    let curRegion = 'Все';
+
+    function renderStudyFilters() {
+      document.getElementById('studyFilters').innerHTML = regions.map(r =>
+        `<button class="f-btn ${r === curRegion ? 'active' : ''}" onclick="curRegion='${r}';renderStudyFilters();drawStudyMarkers()">${r}</button>`
+      ).join('');
+    }
+
+    function selectPlace(p) {
+      const color = p.type === 'ocean' ? '#38bdf8' : (p.type === 'sea' ? '#22d3ee' : '#00e599');
+      document.getElementById('infoCat').textContent = p.region;
+      document.getElementById('infoCat').style.color = color;
+      document.getElementById('infoTitle').textContent = p.name;
+      document.getElementById('infoDesc').textContent = p.desc;
+      document.getElementById('infoCard').style.borderLeftColor = color;
+      studyMap.flyTo([p.lat, p.lng], 4, { duration: 0.8 });
+    }
+
+    function drawStudyMarkers() {
+      studyLayer.clearLayers();
+      const q = (document.getElementById('mapSearch').value || '').toLowerCase().trim();
+      const list = allPlaces.filter(p => (curRegion === 'Все' || p.region === curRegion) && (!q || p.name.toLowerCase().includes(q)));
+      list.forEach(p => {
+        const color = p.type === 'ocean' ? '#38bdf8' : (p.type === 'sea' ? '#22d3ee' : '#00e599');
+        const m = L.circleMarker([p.lat, p.lng], {
+          radius: p.type === 'ocean' ? 9 : 6,
+          color: color, fillColor: color, fillOpacity: 0.5, weight: 2
+        }).addTo(studyLayer);
+        m.on('click', () => { selectPlace(p); addScore(5, true); });
+      });
+      if (q && list.length === 1) selectPlace(list[0]);
+    }
+
+    renderStudyFilters();
+    drawStudyMarkers();
+
+    // 2. ИГРА: ГЕО-СНАЙПЕР И БЛИЦ
+    const gameMap = L.map('gameMap').setView([25, 20], 2);
+    L.tileLayer(tileUrls.dark).addTo(gameMap);
+    const sniperLayer = L.layerGroup().addTo(gameMap);
+    let currentTarget = null, roundLocked = false;
+
+    function selectGameMode(mode) {
+      document.getElementById('mCard-sniper').classList.toggle('active', mode === 'sniper');
+      document.getElementById('mCard-quiz').classList.toggle('active', mode === 'quiz');
+      document.getElementById('game-sniper').classList.toggle('hidden', mode !== 'sniper');
+      document.getElementById('game-quiz').classList.toggle('hidden', mode !== 'quiz');
+      if (mode === 'sniper') setTimeout(() => gameMap.invalidateSize(), 100);
+      if (mode === 'quiz') renderQuiz();
+    }
+
+    function nextSniperRound() {
+      if (!allPlaces.length) return;
+      sniperLayer.clearLayers();
+      roundLocked = false;
+      currentTarget = allPlaces[Math.floor(Math.random() * allPlaces.length)];
+      document.getElementById('sniperTarget').textContent = `${currentTarget.name} (${currentTarget.region})`;
+      document.getElementById('sniperFeedback').innerHTML = `<div class="info-desc">Ткни на карту, где находится <b>${currentTarget.name}</b>!</div>`;
+    }
+
+    function calcDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+      return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    gameMap.on('click', (e) => {
+      if (!currentTarget || roundLocked) return;
+      roundLocked = true;
+      const dist = calcDistanceKm(e.latlng.lat, e.latlng.lng, currentTarget.lat, currentTarget.lng);
+      L.circleMarker([e.latlng.lat, e.latlng.lng], { radius: 6, color: '#ef4444' }).addTo(sniperLayer);
+      L.circleMarker([currentTarget.lat, currentTarget.lng], { radius: 8, color: '#00e599', fillOpacity: 0.7 }).addTo(sniperLayer);
+      L.polyline([[e.latlng.lat, e.latlng.lng], [currentTarget.lat, currentTarget.lng]], { color: '#38bdf8', dashArray: '5,5' }).addTo(sniperLayer);
+
+      let pts = dist < 350 ? 30 : (dist < 1100 ? 15 : (dist < 2500 ? 5 : 0));
+      addScore(pts, pts > 0);
+      document.getElementById('sniperFeedback').innerHTML = `
+        <div class="info-cat" style="color:${pts > 0 ? '#00e599' : '#ef4444'}">${pts > 0 ? 'ТОЧНОЕ ПОПАДАНИЕ!' : 'ДАЛЕКОВАТО'}</div>
+        <div class="info-desc">Промах: <b>${dist} км</b>. Начислено: <b>+${pts} очков</b>. Нажми «Дальше ➔» для нового раунда.</div>
+      `;
+    });
+
+    let qIdx = 0, qScore = 0, qAnswered = false;
+    function renderQuiz() {
+      const box = document.getElementById('quizContainer');
+      if (!allQuestions.length) { box.innerHTML = 'Загрузка вопросов из data.js...'; return; }
+      if (qIdx >= allQuestions.length) {
+        box.innerHTML = `<h3>Раунд завершён: ${qScore} из ${allQuestions.length}</h3>
+          <button class="btn-main" style="margin-top:12px;width:100%" onclick="qIdx=0;qScore=0;renderQuiz()">Играть ещё раз</button>`;
+        return;
+      }
+      qAnswered = false;
+      const cur = allQuestions[qIdx];
+      box.innerHTML = `<div style="font-size:11px;color:#38bdf8;font-weight:700">ВОПРОС ${qIdx+1}/${allQuestions.length}</div>
+        <div style="font-size:16px;font-weight:700;margin:8px 0">${cur.q}</div>
+        ${cur.options.map((o, i) => `<button class="opt-btn" onclick="checkQuiz(${i}, this)">${o}</button>`).join('')}`;
+    }
+
+    function checkQuiz(i, btn) {
+      if (qAnswered) return;
+      qAnswered = true;
+      const cur = allQuestions[qIdx];
+      const all = document.querySelectorAll('.opt-btn');
+      if (i === cur.a) { btn.classList.add('correct'); qScore++; addScore(15, true); }
+      else { btn.classList.add('wrong'); all[cur.a].classList.add('correct'); addScore(0, false); }
+      setTimeout(() => { qIdx++; renderQuiz(); }, 900);
+    }
+
+    // 3. СПРАВОЧНИК
+    const gCats = ['Все', ...new Set(guideItems.map(g => g.cat))];
+    let curGCat = 'Все';
+
+    function renderGuide() {
+      document.getElementById('guideFilters').innerHTML = gCats.map(c =>
+        `<button class="f-btn ${c === curGCat ? 'active' : ''}" onclick="curGCat='${c}';renderGuide()">${c}</button>`
+      ).join('');
+      const q = (document.getElementById('guideSearch').value || '').toLowerCase().trim();
+      const filtered = guideItems.filter(g => (curGCat === 'Все' || g.cat === curGCat) && (!q || g.title.toLowerCase().includes(q) || g.rule.toLowerCase().includes(q)));
+      document.getElementById('guideList').innerHTML = filtered.map(g => `
+        <div class="guide-card">
+          <div class="guide-cat">${g.cat}</div>
+          <div class="guide-title">${g.title}</div>
+          <div class="guide-rule">${g.rule}</div>
+          <div class="guide-trap">⚠️ ${g.trap}</div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
