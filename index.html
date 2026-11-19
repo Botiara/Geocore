@@ -491,7 +491,7 @@ const ACTIVE_GUIDE = (window.GUIDE_DATA && window.GUIDE_DATA.length) ? window.GU
         </div>
       `).join('');
     }
-    if (typeof map !== 'undefined') window.map =   window.map = [typeof mainMap !== 'undefined' && mainMap, typeof myMap !== 'undefined' && myMap, typeof geoMap !== 'undefined' && geoMap, typeof leafletMap !== 'undefined' && leafletMap].find(Boolean);
+    if (typeof studyMap !== 'undefined') window.map = studyMap;
 
 
    ['pro_gate.js', 'oge_data.js', 'geopolitics_data.js', 'russia_data.js', 'guides_extra.js'].forEach(file => {
