@@ -37,45 +37,85 @@
     geoLayers = [];
   }
 
-  window.showBlockOnMap = function(blockId) {
+  if (window.L && !window._mapHooked) {
+    window._mapHooked = true;
+    const origMap = L.map;
+    L.map = function() { const m = origMap.apply(this, arguments); window.map = m; return m; };
+  }
+
+  let worldGeoJson = null;
+  let activeGeoLayer = null;
+
+  async function ensureWorldGeoJson() {
+    if (worldGeoJson) return worldGeoJson;
+    const res = await fetch('https://githubusercontent.com');
+    worldGeoJson = await res.json();
+    return worldGeoJson;
+  }
+
+  function switchToMapTab() {
+    const firstBtn = document.querySelector('.nav-btn');
+    if (firstBtn) firstBtn.click();
+    if (window.map && window.map.invalidateSize) setTimeout(() => window.map.invalidateSize(), 120);
+  }
+
+  window.showBlockOnMap = async function(blockId) {
     const block = GEO_BLOCKS.find(b => b.id === blockId);
     if (!block) return;
-    const mapBtn = document.querySelector('.nav-btn');
-    if (mapBtn) mapBtn.click();
+    switchToMapTab();
     if (!window.map || !window.L) return;
-    clearGeoMapLayers();
-    block.zones.forEach(coords => {
-      const poly = L.polygon(coords, { color: block.color, weight: 2, fillColor: block.color, fillOpacity: 0.35 }).addTo(window.map);
-      poly.bindPopup(`<b>${block.name}</b><br><small>${block.members}</small>`);
-      geoLayers.push(poly);
-    });
-    window.map.setView([block.lat, block.lng], block.zoom || 3);
+    if (activeGeoLayer) { window.map.removeLayer(activeGeoLayer); activeGeoLayer = null; }
+    try {
+      const data = await ensureWorldGeoJson();
+      const filtered = { type: 'FeatureCollection', features: data.features.filter(f => block.iso.includes(f.id)) };
+      activeGeoLayer = L.geoJSON(filtered, {
+        style: { color: block.color, weight: 1.5, fillColor: block.color, fillOpacity: 0.38 },
+        onEachFeature: (feat, layer) => {
+          layer.bindPopup(`<b>${block.name}</b><br>Государство: <b>${feat.properties.name}</b><br><small>${block.members}</small>`);
+        }
+      }).addTo(window.map);
+      window.map.setView([block.lat, block.lng], block.zoom);
+      L.popup().setLatLng([block.lat, block.lng]).setContent(`<b>${block.name}</b><br><small>${block.desc}</small>`).openOn(window.map);
+    } catch (e) { console.error(e); }
   };
 
-  window.showAllCountriesOnMap = function() {
-    const mapBtn = document.querySelector('.nav-btn');
-    if (mapBtn) mapBtn.click();
-    if (!window.map || !window.L) return;
-    clearGeoMapLayers();
-    GEO_COUNTRIES.forEach(c => {
-      const m = L.circleMarker([c.lat, c.lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#0ea5e9', fillOpacity: 0.85 }).addTo(window.map);
-      m.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
-      geoLayers.push(m);
-    });
-    window.map.setView([25, 30], 2);
-  };
-
-  window.flyToGeoCountry = function(idx) {
+  window.flyToGeoCountry = async function(idx) {
     const c = GEO_COUNTRIES[idx];
     if (!c) return;
-    const mapBtn = document.querySelector('.nav-btn');
-    if (mapBtn) mapBtn.click();
+    switchToMapTab();
     if (!window.map || !window.L) return;
-    clearGeoMapLayers();
-    const m = L.circleMarker([c.lat, c.lng], { radius: 10, color: '#fff', weight: 2, fillColor: '#0284c7', fillOpacity: 0.9 }).addTo(window.map);
-    m.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`).openPopup();
-    geoLayers.push(m);
-    window.map.setView([c.lat, c.lng], 4);
+    if (activeGeoLayer) { window.map.removeLayer(activeGeoLayer); activeGeoLayer = null; }
+    try {
+      const data = await ensureWorldGeoJson();
+      const filtered = { type: 'FeatureCollection', features: data.features.filter(f => f.id === c.iso) };
+      activeGeoLayer = L.geoJSON(filtered, {
+        style: { color: '#0284c7', weight: 2.5, fillColor: '#0284c7', fillOpacity: 0.42 },
+        onEachFeature: (feat, layer) => {
+          layer.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
+        }
+      }).addTo(window.map);
+      window.map.setView([c.lat, c.lng], c.zoom);
+      L.popup().setLatLng([c.lat, c.lng]).setContent(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`).openOn(window.map);
+    } catch (e) { console.error(e); }
+  };
+
+  window.showAllCountriesOnMap = async function() {
+    switchToMapTab();
+    if (!window.map || !window.L) return;
+    if (activeGeoLayer) { window.map.removeLayer(activeGeoLayer); activeGeoLayer = null; }
+    try {
+      const data = await ensureWorldGeoJson();
+      const isoMap = Object.fromEntries(GEO_COUNTRIES.map(c => [c.iso, c]));
+      const filtered = { type: 'FeatureCollection', features: data.features.filter(f => isoMap[f.id]) };
+      activeGeoLayer = L.geoJSON(filtered, {
+        style: { color: '#0ea5e9', weight: 1.5, fillColor: '#0ea5e9', fillOpacity: 0.35 },
+        onEachFeature: (feat, layer) => {
+          const c = isoMap[feat.id];
+          layer.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
+        }
+      }).addTo(window.map);
+      window.map.setView(, 2);
+    } catch (e) { console.error(e); }
   };
 
   function initGeopolitics() {
@@ -105,9 +145,9 @@
   }
 
   window.renderGeopol = function(tab) {
-    const tabs = ['Блоки', 'Страны (16)', 'Нанести все страны'];
+    const tabs = ['Блоки', 'Страны (16)', 'Все 16 на карте'];
     document.getElementById('geopolFilters').innerHTML = tabs.map(t =>
-      `<button class="f-btn ${t === tab ? 'active' : ''}" onclick="${t === 'Нанести все страны' ? 'showAllCountriesOnMap()' : `renderGeopol('${t}')`}">${t}</button>`
+      `<button class="f-btn ${t === tab ? 'active' : ''}" onclick="${t === 'Все 16 на карте' ? 'showAllCountriesOnMap()' : `renderGeopol('${t}')`}">${t}</button>`
     ).join('');
 
     if (tab === 'Блоки') {
@@ -117,7 +157,7 @@
           <div class="guide-title">${b.name}</div>
           <div class="guide-trap" style="margin:6px 0;"><b>Состав:</b> ${b.members}</div>
           <div class="guide-rule">${b.desc}</div>
-          <button class="f-btn active" style="margin-top:8px;width:100%;background:${b.color};border-color:${b.color};" onclick="showBlockOnMap('${b.id}')">🎨 Подсветить на карте</button>
+          <button class="f-btn active" style="margin-top:8px;width:100%;background:${b.color};border-color:${b.color};" onclick="showBlockOnMap('${b.id}')">🎨 Закрасить территорию блока</button>
         </div>
       `).join('');
     } else {
@@ -127,7 +167,7 @@
           <div class="guide-title">${c.name}</div>
           <div class="guide-trap" style="margin:6px 0;"><b>Устройство:</b> ${c.gov}</div>
           <div class="guide-rule">${c.desc}</div>
-          <button class="f-btn active" style="margin-top:8px;width:100%;" onclick="flyToGeoCountry(${idx})">📍 Открыть страну на карте</button>
+          <button class="f-btn active" style="margin-top:8px;width:100%;" onclick="flyToGeoCountry(${idx})">📍 Показать территорию и справку</button>
         </div>
       `).join('');
     }
