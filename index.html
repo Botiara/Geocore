@@ -485,8 +485,9 @@ const ACTIVE_GUIDE = (window.GUIDE_DATA && window.GUIDE_DATA.length) ? window.GU
         <div class="guide-card">
           <div class="guide-cat">${g.cat}</div>
           <div class="guide-title">${g.title}</div>
-          <div class="guide-rule">${g.rule}</div>
-          <div class="guide-trap">На заметку: ${g.note || g.trap || ''}</div>
+          <div class="guide-rule">${g.rule || g.text || g.desc || g.body || ''}</div>
+<div class="guide-trap">На заметку: ${g.trap || g.note || g.tip || g.hint || ''}</div>
+          
         </div>
       `).join('');
     }
