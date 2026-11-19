@@ -1,4 +1,9 @@
 (function() {
+  if (window.L && !window._mapHooked) {
+    window._mapHooked = true;
+    const origMap = L.map;
+    L.map = function() { const m = origMap.apply(this, arguments); window.map = m; return m; };
+  }
   const GEO_BLOCKS = [
     { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', iso: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE','NOR','ESP','ITA','GRC','ROU','BGR','HUN','CZE','SVK','PRT','NLD','BEL','DNK','EST','LVA','LTU','HRV','ALB','MNE','MKD','SVN'], members: '32 страны (США, Канада, Великобритания, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -10, zoom: 2 },
     { id: 'brics', cat: 'Экономический блок', name: 'БРИКС+', color: '#16a34a', iso: ['RUS','CHN','IND','BRA','ZAF','ARE','IRN','EGY','ETH','IDN'], members: 'Россия, Китай, Индия, Бразилия, ЮАР, ОАЭ, Иран, Египет, Эфиопия, Индонезия', desc: 'Крупнейшие развивающиеся экономики мира (>35% мирового ВВП по ППС), расчёты в нацвалютах.', lat: 22, lng: 65, zoom: 2 },
