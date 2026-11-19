@@ -4,8 +4,9 @@
     const origMap = L.map;
     L.map = function() { const m = origMap.apply(this, arguments); window.map = m; return m; };
   }
-  const GEO_BLOCKS = [
-    { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', iso: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE','NOR','ESP','ITA','GRC','ROU','BGR','HUN','CZE','SVK','PRT','NLD','BEL','DNK','EST','LVA','LTU','HRV','ALB','MNE','MKD','SVN'], members: '32 страны (США, Канада, Великобритания, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -10, zoom: 2 },
+
+  const BLOCKS = [
+    { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', iso: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE','NOR','ESP','ITA','GRC','ROU','BGR','HUN','CZE','SVK','PRT','NLD','BEL','DNK','EST','LVA','LTU','HRV','ALB','MNE','MKD','SVN'], members: '32 страны (США, Канада, Британия, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -10, zoom: 2 },
     { id: 'brics', cat: 'Экономический блок', name: 'БРИКС+', color: '#16a34a', iso: ['RUS','CHN','IND','BRA','ZAF','ARE','IRN','EGY','ETH','IDN'], members: 'Россия, Китай, Индия, Бразилия, ЮАР, ОАЭ, Иран, Египет, Эфиопия, Индонезия', desc: 'Крупнейшие развивающиеся экономики мира (>35% мирового ВВП по ППС), расчёты в нацвалютах.', lat: 22, lng: 65, zoom: 2 },
     { id: 'odkb', cat: 'Военный блок', name: 'ОДКБ', color: '#dc2626', iso: ['RUS','BLR','KAZ','KGZ','TJK'], members: 'Россия, Беларусь, Казахстан, Киргизия, Таджикистан', desc: 'Евразийский военно-политический союз (ст. 4: агрессия против одного — агрессия против всех).', lat: 55, lng: 75, zoom: 3 },
     { id: 'eaeu', cat: 'Экономический блок', name: 'ЕАЭС', color: '#d97706', iso: ['RUS','BLR','KAZ','ARM','KGZ'], members: 'Россия, Беларусь, Казахстан, Армения, Киргизия', desc: 'Единый таможенный тариф, свобода движения товаров, услуг, капитала и рабочей силы.', lat: 55, lng: 75, zoom: 3 },
@@ -13,7 +14,7 @@
     { id: 'sco', cat: 'Региональный блок', name: 'ШОС', color: '#9333ea', iso: ['RUS','CHN','IND','PAK','KAZ','UZB','KGZ','TJK','IRN','BLR'], members: 'Россия, Китай, Индия, Пакистан, Казахстан, Узбекистан, Киргизия, Таджикистан, Иран, Беларусь', desc: 'Крупнейшая евразийская организация безопасности, энергетики и транспорта.', lat: 40, lng: 80, zoom: 2 }
   ];
 
-  const GEO_COUNTRIES = [
+  const COUNTRIES = [
     { iso: 'RUS', name: '🇷🇺 Россия', region: 'Евразия', gov: 'Смешанная республика • Федерация', blocks: 'БРИКС+, ОДКБ, ЕАЭС, ШОС, СБ ООН', desc: 'Крупнейшая страна мира (17,1 млн км²), лидер по запасам газа, леса и пресной воды.', lat: 60, lng: 90, zoom: 2 },
     { iso: 'CHN', name: '🇨🇳 Китай', region: 'Азия', gov: 'Социалистическая республика • Унитарное гос-во', blocks: 'БРИКС+, ШОС, СБ ООН', desc: 'Первая экономика мира по ППС, «мировая фабрика» и главный торговый партнёр РФ.', lat: 35, lng: 103, zoom: 3 },
     { iso: 'USA', name: '🇺🇸 США', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'НАТО, AUKUS, USMCA, СБ ООН', desc: 'Крупнейшая экономика по номинальному ВВП, эмитент доллара и лидер НАТО.', lat: 39, lng: -98, zoom: 3 },
@@ -30,95 +31,71 @@
     { iso: 'SAU', name: '🇸🇦 Саудовская Аравия', region: 'Азия', gov: 'Абсолютная монархия', blocks: 'ОПЕК+, ЛАГ, G20', desc: 'Ведущий экспортёр нефти в мире и духовный центр ислама.', lat: 24, lng: 45, zoom: 4 },
     { iso: 'JPN', name: '🇯🇵 Япония', region: 'Азия', gov: 'Конституционная монархия', blocks: 'G7, QUAD', desc: 'Технологический лидер Восточной Азии, робототехника и автопром.', lat: 36, lng: 138, zoom: 4 },
     { iso: 'BRA', name: '🇧🇷 Бразилия', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'БРИКС+, МЕРКОСУР', desc: 'Крупнейшая страна Южной Америки, мировой гигант агроэкспорта.', lat: -10, lng: -52, zoom: 3 }
-  ]; let geoLayers = [];
-  function clearGeoMapLayers() {
-    if (!window.map) return;
-    geoLayers.forEach(l => window.map.removeLayer(l));
-    geoLayers = [];
+  ]; let geoJsonCache = null, activeLayer = null;
+
+  async function getGeoJson() {
+    if (geoJsonCache) return geoJsonCache;
+    const r = await fetch('https://githubusercontent.com');
+    geoJsonCache = await r.json();
+    return geoJsonCache;
   }
 
-  if (window.L && !window._mapHooked) {
-    window._mapHooked = true;
-    const origMap = L.map;
-    L.map = function() { const m = origMap.apply(this, arguments); window.map = m; return m; };
-  }
-
-  let worldGeoJson = null;
-  let activeGeoLayer = null;
-
-  async function ensureWorldGeoJson() {
-    if (worldGeoJson) return worldGeoJson;
-    const res = await fetch('https://githubusercontent.com');
-    worldGeoJson = await res.json();
-    return worldGeoJson;
-  }
-
-  function switchToMapTab() {
+  function openMap() {
     const firstBtn = document.querySelector('.nav-btn');
     if (firstBtn) firstBtn.click();
     if (window.map && window.map.invalidateSize) setTimeout(() => window.map.invalidateSize(), 120);
   }
 
-  window.showBlockOnMap = async function(blockId) {
-    const block = GEO_BLOCKS.find(b => b.id === blockId);
-    if (!block) return;
-    switchToMapTab();
+  window.paintBlock = async function(id) {
+    const b = BLOCKS.find(x => x.id === id);
+    if (!b) return;
+    openMap();
     if (!window.map || !window.L) return;
-    if (activeGeoLayer) { window.map.removeLayer(activeGeoLayer); activeGeoLayer = null; }
-    try {
-      const data = await ensureWorldGeoJson();
-      const filtered = { type: 'FeatureCollection', features: data.features.filter(f => block.iso.includes(f.id)) };
-      activeGeoLayer = L.geoJSON(filtered, {
-        style: { color: block.color, weight: 1.5, fillColor: block.color, fillOpacity: 0.38 },
-        onEachFeature: (feat, layer) => {
-          layer.bindPopup(`<b>${block.name}</b><br>Государство: <b>${feat.properties.name}</b><br><small>${block.members}</small>`);
-        }
-      }).addTo(window.map);
-      window.map.setView([block.lat, block.lng], block.zoom);
-      L.popup().setLatLng([block.lat, block.lng]).setContent(`<b>${block.name}</b><br><small>${block.desc}</small>`).openOn(window.map);
-    } catch (e) { console.error(e); }
+    if (activeLayer) { window.map.removeLayer(activeLayer); activeLayer = null; }
+    const data = await getGeoJson();
+    const fc = { type: 'FeatureCollection', features: data.features.filter(f => b.iso.includes(f.id)) };
+    activeLayer = L.geoJSON(fc, {
+      style: { color: b.color, weight: 1.5, fillColor: b.color, fillOpacity: 0.38 },
+      onEachFeature: (f, l) => l.bindPopup(`<b>${b.name}</b><br>Страна: <b>${f.properties.name}</b><br><small>${b.members}</small>`)
+    }).addTo(window.map);
+    window.map.setView([b.lat, b.lng], b.zoom);
+    L.popup().setLatLng([b.lat, b.lng]).setContent(`<b>${b.name}</b><br><small>${b.desc}</small>`).openOn(window.map);
   };
 
-  window.flyToGeoCountry = async function(idx) {
-    const c = GEO_COUNTRIES[idx];
+  window.paintCountry = async function(idx) {
+    const c = COUNTRIES[idx];
     if (!c) return;
-    switchToMapTab();
+    openMap();
     if (!window.map || !window.L) return;
-    if (activeGeoLayer) { window.map.removeLayer(activeGeoLayer); activeGeoLayer = null; }
-    try {
-      const data = await ensureWorldGeoJson();
-      const filtered = { type: 'FeatureCollection', features: data.features.filter(f => f.id === c.iso) };
-      activeGeoLayer = L.geoJSON(filtered, {
-        style: { color: '#0284c7', weight: 2.5, fillColor: '#0284c7', fillOpacity: 0.42 },
-        onEachFeature: (feat, layer) => {
-          layer.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
-        }
-      }).addTo(window.map);
-      window.map.setView([c.lat, c.lng], c.zoom);
-      L.popup().setLatLng([c.lat, c.lng]).setContent(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`).openOn(window.map);
-    } catch (e) { console.error(e); }
+    if (activeLayer) { window.map.removeLayer(activeLayer); activeLayer = null; }
+    const data = await getGeoJson();
+    const fc = { type: 'FeatureCollection', features: data.features.filter(f => f.id === c.iso) };
+    activeLayer = L.geoJSON(fc, {
+      style: { color: '#0284c7', weight: 2.5, fillColor: '#0284c7', fillOpacity: 0.42 },
+      onEachFeature: (f, l) => l.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`)
+    }).addTo(window.map);
+    window.map.setView([c.lat, c.lng], c.zoom);
+    L.popup().setLatLng([c.lat, c.lng]).setContent(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`).openOn(window.map);
   };
 
-  window.showAllCountriesOnMap = async function() {
-    switchToMapTab();
+  window.paintAll = async function() {
+    openMap();
     if (!window.map || !window.L) return;
-    if (activeGeoLayer) { window.map.removeLayer(activeGeoLayer); activeGeoLayer = null; }
-    try {
-      const data = await ensureWorldGeoJson();
-      const isoMap = Object.fromEntries(GEO_COUNTRIES.map(c => [c.iso, c]));
-      const filtered = { type: 'FeatureCollection', features: data.features.filter(f => isoMap[f.id]) };
-      activeGeoLayer = L.geoJSON(filtered, {
-        style: { color: '#0ea5e9', weight: 1.5, fillColor: '#0ea5e9', fillOpacity: 0.35 },
-        onEachFeature: (feat, layer) => {
-          const c = isoMap[feat.id];
-          layer.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
-        }
-      }).addTo(window.map);
-      window.map.setView(, 2);
-    } catch (e) { console.error(e); }
+    if (activeLayer) { window.map.removeLayer(activeLayer); activeLayer = null; }
+    const data = await getGeoJson();
+    const mapByIso = Object.fromEntries(COUNTRIES.map(c => [c.iso, c]));
+    const fc = { type: 'FeatureCollection', features: data.features.filter(f => mapByIso[f.id]) };
+    activeLayer = L.geoJSON(fc, {
+      style: { color: '#0ea5e9', weight: 1.5, fillColor: '#0ea5e9', fillOpacity: 0.35 },
+      onEachFeature: (f, l) => {
+        const c = mapByIso[f.id];
+        l.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
+      }
+    }).addTo(window.map);
+    window.map.setView(new L.LatLng(20, 0), 2);
   };
 
-  function initGeopolitics() {
+  function init() {
     const nav = document.querySelector('.nav-tabs');
     if (!nav || document.getElementById('nav-geopol')) return;
     nav.style.overflowX = 'auto';
@@ -147,31 +124,31 @@
   window.renderGeopol = function(tab) {
     const tabs = ['Блоки', 'Страны (16)', 'Все 16 на карте'];
     document.getElementById('geopolFilters').innerHTML = tabs.map(t =>
-      `<button class="f-btn ${t === tab ? 'active' : ''}" onclick="${t === 'Все 16 на карте' ? 'showAllCountriesOnMap()' : `renderGeopol('${t}')`}">${t}</button>`
+      `<button class="f-btn ${t === tab ? 'active' : ''}" onclick="${t === 'Все 16 на карте' ? 'paintAll()' : `renderGeopol('${t}')`}">${t}</button>`
     ).join('');
 
     if (tab === 'Блоки') {
-      document.getElementById('geopolList').innerHTML = GEO_BLOCKS.map(b => `
+      document.getElementById('geopolList').innerHTML = BLOCKS.map(b => `
         <div class="guide-card" style="border-left:4px solid ${b.color};">
           <div class="guide-cat" style="color:${b.color};">${b.cat}</div>
           <div class="guide-title">${b.name}</div>
           <div class="guide-trap" style="margin:6px 0;"><b>Состав:</b> ${b.members}</div>
           <div class="guide-rule">${b.desc}</div>
-          <button class="f-btn active" style="margin-top:8px;width:100%;background:${b.color};border-color:${b.color};" onclick="showBlockOnMap('${b.id}')">🎨 Закрасить территорию блока</button>
+          <button class="f-btn active" style="margin-top:8px;width:100%;background:${b.color};border-color:${b.color};" onclick="paintBlock('${b.id}')">🎨 Закрасить территорию блока</button>
         </div>
       `).join('');
     } else {
-      document.getElementById('geopolList').innerHTML = GEO_COUNTRIES.map((c, idx) => `
+      document.getElementById('geopolList').innerHTML = COUNTRIES.map((c, idx) => `
         <div class="guide-card">
           <div class="guide-cat">${c.region} • ${c.blocks}</div>
           <div class="guide-title">${c.name}</div>
           <div class="guide-trap" style="margin:6px 0;"><b>Устройство:</b> ${c.gov}</div>
           <div class="guide-rule">${c.desc}</div>
-          <button class="f-btn active" style="margin-top:8px;width:100%;" onclick="flyToGeoCountry(${idx})">📍 Показать территорию и справку</button>
+          <button class="f-btn active" style="margin-top:8px;width:100%;" onclick="paintCountry(${idx})">📍 Показать территорию и справку</button>
         </div>
       `).join('');
     }
   };
 
-  setTimeout(initGeopolitics, 400);
+  setTimeout(init, 400);
 })();
