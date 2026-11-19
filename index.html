@@ -144,7 +144,7 @@
     <button class="nav-btn" onclick="switchView('play', this)"><span class="ico">🎮</span>Играть</button>
     <button class="nav-btn" onclick="switchView('guide', this)"><span class="ico">📚</span>Справочник</button>
   </nav>
-
+<script src="guide_data.js?v=23"></script>
   <script>
     const ALL_PLACES = [
       { name: "Москва", region: "Города России", type: "city", lat: 55.7558, lng: 37.6173, desc: "Столица России, крупнейший транспортный и культурный узел Восточной Европы." },
@@ -471,8 +471,8 @@
       else { btn.classList.add('wrong'); all[cur.a].classList.add('correct'); addScore(0, false); haptic('heavy'); }
       setTimeout(() => { qIdx++; renderQuiz(); }, 950);
     }
-
-    const gCats = ['Все', ...new Set(guideItems.map(g => g.cat))];
+const ACTIVE_GUIDE = (window.GUIDE_DATA && window.GUIDE_DATA.length) ? window.GUIDE_DATA : guideItems;
+    const gCats = ['Все', ...new Set(ACTIVE_GUIDE.map(g => g.cat))];
     let curGCat = 'Все';
 
     function renderGuide() {
@@ -480,7 +480,7 @@
         `<button class="f-btn ${c === curGCat ? 'active' : ''}" onclick="curGCat='${c}';renderGuide()">${c}</button>`
       ).join('');
       const q = (document.getElementById('guideSearch').value || '').toLowerCase().trim();
-      const filtered = guideItems.filter(g => (curGCat === 'Все' || g.cat === curGCat) && (!q || g.title.toLowerCase().includes(q) || g.rule.toLowerCase().includes(q) || g.trap.toLowerCase().includes(q)));
+      const filtered = ACTIVE_GUIDE.filter(g => (curGCat === 'Все' || g.cat === curGCat) && (!q || g.title.toLowerCase().includes(q) || g.rule.toLowerCase().includes(q) || g.trap.toLowerCase().includes(q)));
       document.getElementById('guideList').innerHTML = filtered.map(g => `
         <div class="guide-card">
           <div class="guide-cat">${g.cat}</div>
@@ -490,6 +490,6 @@
         </div>
       `).join('');
     }
-  </script>
+  </script
 </body>
 </html>
