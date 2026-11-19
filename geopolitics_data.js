@@ -1,97 +1,104 @@
 (function() {
-  if (window.L && !window._mapHooked) {
-    window._mapHooked = true;
-    const origMap = L.map;
-    L.map = function() { const m = origMap.apply(this, arguments); window.map = m; return m; };
-  }
+  const POLY = {
+    RUS: [[44,28],[55,28],[60,30],[69,33],[70,60],[73,100],[71,140],[66,170],[50,142],[43,132],[50,118],[50,85],[55,70],[51,50],[44,40]],
+    CHN: [[22,100],[25,118],[35,120],[41,124],[50,127],[48,88],[38,76],[28,86],[22,100]],
+    USA: [[25,-81],[30,-97],[32,-117],[49,-124],[49,-67],[40,-74],[25,-81]],
+    CAN: [[49,-124],[60,-139],[70,-140],[72,-80],[52,-56],[45,-67],[49,-95]],
+    FRA: [[42.5,-1.5],[48.5,-4.5],[51,2.5],[49,8],[43.5,7],[42.5,3]],
+    DEU: [[47.5,7.5],[51,6],[54.5,9],[54,14],[50,14.5],[47.5,12.5]],
+    GBR: [[50,-5.5],[55,-5],[58.5,-5],[58.5,-2],[53,0.5],[51,1.3]],
+    POL: [[49.5,14.5],[54,14.5],[54.5,23.5],[50,23.5]],
+    TUR: [[36.5,26.5],[41.5,26.5],[41.5,44],[37,44]],
+    FIN: [[60,21],[69,21],[69.5,29],[60.5,28]],
+    SWE: [[56,13],[68.5,18],[66,24],[56,16]],
+    IND: [[8,77],[22,69],[33,75],[28,95],[22,88],[13,80]],
+    BRA: [[4,-60],[-5,-35],[-22,-41],[-33,-53],[-18,-58],[-8,-72]],
+    ZAF: [[-22,17],[-22,31],[-29,31],[-34,25],[-34,18]],
+    DZA: [[19,-8],[28,-8],[36.5,-1],[36.5,8.5],[24,11],[19,4]],
+    EGY: [[22,25],[31.5,25],[31.5,34],[22,35]],
+    IRN: [[26,57],[30,48],[39,44.5],[38,58],[30,61],[26,57]],
+    BLR: [[51.5,23.5],[55.5,26.5],[55.5,32],[51.5,31]],
+    KAZ: [[42,51],[51,51],[55,70],[49,86],[42,80],[41,68]],
+    SAU: [[17,42],[29,35],[32,39],[29,48],[24,55],[18,52]],
+    JPN: [[31,130],[36,136],[44,141],[43,145],[35,140],[31,131]]
+  };
 
   const BLOCKS = [
-    { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', iso: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE','NOR','ESP','ITA','GRC','ROU','BGR','HUN','CZE','SVK','PRT','NLD','BEL','DNK','EST','LVA','LTU','HRV','ALB','MNE','MKD','SVN'], members: '32 страны (США, Канада, Британия, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -10, zoom: 2 },
-    { id: 'brics', cat: 'Экономический блок', name: 'БРИКС+', color: '#16a34a', iso: ['RUS','CHN','IND','BRA','ZAF','ARE','IRN','EGY','ETH','IDN'], members: 'Россия, Китай, Индия, Бразилия, ЮАР, ОАЭ, Иран, Египет, Эфиопия, Индонезия', desc: 'Крупнейшие развивающиеся экономики мира (>35% мирового ВВП по ППС), расчёты в нацвалютах.', lat: 22, lng: 65, zoom: 2 },
-    { id: 'odkb', cat: 'Военный блок', name: 'ОДКБ', color: '#dc2626', iso: ['RUS','BLR','KAZ','KGZ','TJK'], members: 'Россия, Беларусь, Казахстан, Киргизия, Таджикистан', desc: 'Евразийский военно-политический союз (ст. 4: агрессия против одного — агрессия против всех).', lat: 55, lng: 75, zoom: 3 },
-    { id: 'eaeu', cat: 'Экономический блок', name: 'ЕАЭС', color: '#d97706', iso: ['RUS','BLR','KAZ','ARM','KGZ'], members: 'Россия, Беларусь, Казахстан, Армения, Киргизия', desc: 'Единый таможенный тариф, свобода движения товаров, услуг, капитала и рабочей силы.', lat: 55, lng: 75, zoom: 3 },
-    { id: 'eu', cat: 'Экономико-политический блок', name: 'Европейский союз (ЕС)', color: '#4f46e5', iso: ['FRA','DEU','ITA','ESP','POL','ROU','NLD','BEL','GRC','CZE','PRT','SWE','HUN','AUT','BGR','DNK','FIN','SVK','IRL','HRV','LTU','SVN','LVA','EST','CYP','LUX','MLT'], members: '27 государств Европы', desc: 'Единый внутренний рынок, Шенгенская зона и общая валюта евро.', lat: 50, lng: 12, zoom: 4 },
-    { id: 'sco', cat: 'Региональный блок', name: 'ШОС', color: '#9333ea', iso: ['RUS','CHN','IND','PAK','KAZ','UZB','KGZ','TJK','IRN','BLR'], members: 'Россия, Китай, Индия, Пакистан, Казахстан, Узбекистан, Киргизия, Таджикистан, Иран, Беларусь', desc: 'Крупнейшая евразийская организация безопасности, энергетики и транспорта.', lat: 40, lng: 80, zoom: 2 }
+    { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', keys: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE'], members: '32 страны (США, Канада, Британия, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -15, zoom: 2 },
+    { id: 'brics', cat: 'Экономический блок', name: 'БРИКС+', color: '#16a34a', keys: ['RUS','CHN','IND','BRA','ZAF','IRN','EGY'], members: 'Россия, Китай, Индия, Бразилия, ЮАР, ОАЭ, Иран, Египет, Эфиопия, Индонезия', desc: 'Крупнейшие развивающиеся экономики мира (>35% мирового ВВП по ППС), расчёты в нацвалютах.', lat: 22, lng: 65, zoom: 2 },
+    { id: 'odkb', cat: 'Военный блок', name: 'ОДКБ', color: '#dc2626', keys: ['RUS','BLR','KAZ'], members: 'Россия, Беларусь, Казахстан, Киргизия, Таджикистан', desc: 'Евразийский военно-политический союз (ст. 4: агрессия против одного — агрессия против всех).', lat: 55, lng: 75, zoom: 3 },
+    { id: 'eaeu', cat: 'Экономический блок', name: 'ЕАЭС', color: '#d97706', keys: ['RUS','BLR','KAZ'], members: 'Россия, Беларусь, Казахстан, Армения, Киргизия', desc: 'Единый таможенный тариф, свобода движения товаров, услуг, капитала и рабочей силы.', lat: 55, lng: 75, zoom: 3 },
+    { id: 'eu', cat: 'Экономико-политический блок', name: 'Европейский союз (ЕС)', color: '#4f46e5', keys: ['FRA','DEU','POL','FIN','SWE'], members: '27 государств Европы', desc: 'Единый внутренний рынок, Шенгенская зона и общая валюта евро.', lat: 52, lng: 12, zoom: 4 },
+    { id: 'sco', cat: 'Региональный блок', name: 'ШОС', color: '#9333ea', keys: ['RUS','CHN','IND','KAZ','IRN','BLR'], members: 'Россия, Китай, Индия, Пакистан, Казахстан, Узбекистан, Киргизия, Таджикистан, Иран, Беларусь', desc: 'Крупнейшая евразийская организация безопасности, энергетики и транспорта.', lat: 40, lng: 80, zoom: 2 }
   ];
 
   const COUNTRIES = [
-    { iso: 'RUS', name: '🇷🇺 Россия', region: 'Евразия', gov: 'Смешанная республика • Федерация', blocks: 'БРИКС+, ОДКБ, ЕАЭС, ШОС, СБ ООН', desc: 'Крупнейшая страна мира (17,1 млн км²), лидер по запасам газа, леса и пресной воды.', lat: 60, lng: 90, zoom: 2 },
-    { iso: 'CHN', name: '🇨🇳 Китай', region: 'Азия', gov: 'Социалистическая республика • Унитарное гос-во', blocks: 'БРИКС+, ШОС, СБ ООН', desc: 'Первая экономика мира по ППС, «мировая фабрика» и главный торговый партнёр РФ.', lat: 35, lng: 103, zoom: 3 },
-    { iso: 'USA', name: '🇺🇸 США', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'НАТО, AUKUS, USMCA, СБ ООН', desc: 'Крупнейшая экономика по номинальному ВВП, эмитент доллара и лидер НАТО.', lat: 39, lng: -98, zoom: 3 },
-    { iso: 'FRA', name: '🇫🇷 Франция', region: 'Европа', gov: 'Смешанная республика • Унитарное гос-во', blocks: 'ЕС, НАТО, СБ ООН', desc: 'Ядерная держава Западной Европы, лидер атомной энергетики ЕС.', lat: 46.5, lng: 2.5, zoom: 5 },
-    { iso: 'DEU', name: '🇩🇪 Германия', region: 'Европа', gov: 'Парламентская республика • Федерация', blocks: 'ЕС, НАТО', desc: 'Крупнейшая экономика Евросоюза и главный индустриальный центр Европы.', lat: 51, lng: 10, zoom: 5 },
-    { iso: 'IND', name: '🇮🇳 Индия', region: 'Азия', gov: 'Парламентская республика • Федерация', blocks: 'БРИКС+, ШОС, QUAD', desc: 'Первое место в мире по населению (>1,44 млрд чел.), центр ИТ и фармацевтики.', lat: 22, lng: 79, zoom: 4 },
-    { iso: 'DZA', name: '🇩🇿 Алжир', region: 'Африка', gov: 'Президентско-парламентская республика', blocks: 'ОПЕК, ЛАГ, Афросоюз', desc: 'Крупнейшая страна Африки (2,38 млн км²), ключевой поставщик газа в Европу.', lat: 28, lng: 2.5, zoom: 4 },
-    { iso: 'ZAF', name: '🇿🇦 ЮАР', region: 'Африка', gov: 'Парламентская республика', blocks: 'БРИКС+, G20, Афросоюз', desc: 'Самая развитая экономика Африки, лидер по добыче платины, хрома и золота.', lat: -29, lng: 24, zoom: 4 },
-    { iso: 'EGY', name: '🇪🇬 Египет', region: 'Африка', gov: 'Президентская республика', blocks: 'БРИКС+, ЛАГ, Афросоюз', desc: 'Контролирует стратегический Суэцкий канал между Европой и Азией.', lat: 26.5, lng: 30, zoom: 5 },
-    { iso: 'IRN', name: '🇮🇷 Иран', region: 'Азия', gov: 'Исламская республика', blocks: 'БРИКС+, ШОС, ОПЕК', desc: 'Контролирует Ормузский пролив, крупнейшие запасы нефти и газа.', lat: 32, lng: 53, zoom: 4 },
-    { iso: 'TUR', name: '🇹🇷 Турция', region: 'Евразия', gov: 'Президентская республика', blocks: 'НАТО, ОТГ, G20', desc: 'Контролирует черноморские проливы Босфор и Дарданеллы.', lat: 39, lng: 35, zoom: 5 },
-    { iso: 'BLR', name: '🇧🇾 Беларусь', region: 'Европа', gov: 'Президентская республика', blocks: 'Союзное гос-во, ОДКБ, ЕАЭС, ШОС', desc: 'Ближайший союзник России, машиностроение и калийные удобрения.', lat: 53.5, lng: 28, zoom: 5 },
-    { iso: 'KAZ', name: '🇰🇿 Казахстан', region: 'Азия', gov: 'Президентская республика', blocks: 'ОДКБ, ЕАЭС, ШОС', desc: 'Крупнейшая экономика Центральной Азии и мировой лидер по добыче урана.', lat: 48, lng: 67, zoom: 4 },
-    { iso: 'SAU', name: '🇸🇦 Саудовская Аравия', region: 'Азия', gov: 'Абсолютная монархия', blocks: 'ОПЕК+, ЛАГ, G20', desc: 'Ведущий экспортёр нефти в мире и духовный центр ислама.', lat: 24, lng: 45, zoom: 4 },
-    { iso: 'JPN', name: '🇯🇵 Япония', region: 'Азия', gov: 'Конституционная монархия', blocks: 'G7, QUAD', desc: 'Технологический лидер Восточной Азии, робототехника и автопром.', lat: 36, lng: 138, zoom: 4 },
-    { iso: 'BRA', name: '🇧🇷 Бразилия', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'БРИКС+, МЕРКОСУР', desc: 'Крупнейшая страна Южной Америки, мировой гигант агроэкспорта.', lat: -10, lng: -52, zoom: 3 }
-  ]; let geoJsonCache = null, activeLayer = null;
-
-  async function getGeoJson() {
-    if (geoJsonCache) return geoJsonCache;
-    const r = await fetch('https://githubusercontent.com');
-    geoJsonCache = await r.json();
-    return geoJsonCache;
-  }
+    { key: 'RUS', name: '🇷🇺 Россия', region: 'Евразия', gov: 'Смешанная республика • Федерация', blocks: 'БРИКС+, ОДКБ, ЕАЭС, ШОС, СБ ООН', desc: 'Крупнейшая страна мира (17,1 млн км²), лидер по запасам газа, леса и пресной воды.', lat: 60, lng: 90, zoom: 2 },
+    { key: 'CHN', name: '🇨🇳 Китай', region: 'Азия', gov: 'Социалистическая республика • Унитарное гос-во', blocks: 'БРИКС+, ШОС, СБ ООН', desc: 'Первая экономика мира по ППС, «мировая фабрика» и главный торговый партнёр РФ.', lat: 35, lng: 103, zoom: 3 },
+    { key: 'USA', name: '🇺🇸 США', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'НАТО, AUKUS, USMCA, СБ ООН', desc: 'Крупнейшая экономика по номинальному ВВП, эмитент доллара и лидер НАТО.', lat: 39, lng: -98, zoom: 3 },
+    { key: 'FRA', name: '🇫🇷 Франция', region: 'Европа', gov: 'Смешанная республика • Унитарное гос-во', blocks: 'ЕС, НАТО, СБ ООН', desc: 'Ядерная держава Западной Европы, лидер атомной энергетики ЕС.', lat: 46.5, lng: 2.5, zoom: 5 },
+    { key: 'DEU', name: '🇩🇪 Германия', region: 'Европа', gov: 'Парламентская республика • Федерация', blocks: 'ЕС, НАТО', desc: 'Крупнейшая экономика Евросоюза и главный индустриальный центр Европы.', lat: 51, lng: 10, zoom: 5 },
+    { key: 'IND', name: '🇮🇳 Индия', region: 'Азия', gov: 'Парламентская республика • Федерация', blocks: 'БРИКС+, ШОС, QUAD', desc: 'Первое место в мире по населению (>1,44 млрд чел.), центр ИТ и фармацевтики.', lat: 22, lng: 79, zoom: 4 },
+    { key: 'DZA', name: '🇩🇿 Алжир', region: 'Африка', gov: 'Президентско-парламентская республика', blocks: 'ОПЕК, ЛАГ, Афросоюз', desc: 'Крупнейшая страна Африки (2,38 млн км²), ключевой поставщик газа в Европу.', lat: 28, lng: 2.5, zoom: 4 },
+    { key: 'ZAF', name: '🇿🇦 ЮАР', region: 'Африка', gov: 'Парламентская республика', blocks: 'БРИКС+, G20, Афросоюз', desc: 'Самая развитая экономика Африки, лидер по добыче платины, хрома и золота.', lat: -29, lng: 24, zoom: 4 },
+    { key: 'EGY', name: '🇪🇬 Египет', region: 'Африка', gov: 'Президентская республика', blocks: 'БРИКС+, ЛАГ, Афросоюз', desc: 'Контролирует стратегический Суэцкий канал между Европой и Азией.', lat: 26.5, lng: 30, zoom: 5 },
+    { key: 'IRN', name: '🇮🇷 Иран', region: 'Азия', gov: 'Исламская республика', blocks: 'БРИКС+, ШОС, ОПЕК', desc: 'Контролирует Ормузский пролив, крупнейшие запасы нефти и газа.', lat: 32, lng: 53, zoom: 4 },
+    { key: 'TUR', name: '🇹🇷 Турция', region: 'Евразия', gov: 'Президентская республика', blocks: 'НАТО, ОТГ, G20', desc: 'Контролирует черноморские проливы Босфор и Дарданеллы.', lat: 39, lng: 35, zoom: 5 },
+    { key: 'BLR', name: '🇧🇾 Беларусь', region: 'Европа', gov: 'Президентская республика', blocks: 'Союзное гос-во, ОДКБ, ЕАЭС, ШОС', desc: 'Ближайший союзник России, машиностроение и калийные удобрения.', lat: 53.5, lng: 28, zoom: 5 },
+    { key: 'KAZ', name: '🇰🇿 Казахстан', region: 'Азия', gov: 'Президентская республика', blocks: 'ОДКБ, ЕАЭС, ШОС', desc: 'Крупнейшая экономика Центральной Азии и мировой лидер по добыче урана.', lat: 48, lng: 67, zoom: 4 },
+    { key: 'SAU', name: '🇸🇦 Саудовская Аравия', region: 'Азия', gov: 'Абсолютная монархия', blocks: 'ОПЕК+, ЛАГ, G20', desc: 'Ведущий экспортёр нефти в мире и духовный центр ислама.', lat: 24, lng: 45, zoom: 4 },
+    { key: 'JPN', name: '🇯🇵 Япония', region: 'Азия', gov: 'Конституционная монархия', blocks: 'G7, QUAD', desc: 'Технологический лидер Восточной Азии, робототехника и автопром.', lat: 36, lng: 138, zoom: 4 },
+    { key: 'BRA', name: '🇧🇷 Бразилия', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'БРИКС+, МЕРКОСУР', desc: 'Крупнейшая страна Южной Америки, мировой гигант агроэкспорта.', lat: -10, lng: -52, zoom: 3 }
+  ];
+  let activeGroup = null;
 
   function openMap() {
     const firstBtn = document.querySelector('.nav-btn');
     if (firstBtn) firstBtn.click();
-    if (window.map && window.map.invalidateSize) setTimeout(() => window.map.invalidateSize(), 120);
+    if (window.map && window.map.invalidateSize) setTimeout(() => window.map.invalidateSize(), 100);
   }
 
-  window.paintBlock = async function(id) {
+  function resetGroup() {
+    if (activeGroup && window.map) window.map.removeLayer(activeGroup);
+    activeGroup = L.layerGroup().addTo(window.map);
+  }
+
+  window.paintBlock = function(id) {
     const b = BLOCKS.find(x => x.id === id);
-    if (!b) return;
+    if (!b || !window.map || !window.L) return;
     openMap();
-    if (!window.map || !window.L) return;
-    if (activeLayer) { window.map.removeLayer(activeLayer); activeLayer = null; }
-    const data = await getGeoJson();
-    const fc = { type: 'FeatureCollection', features: data.features.filter(f => b.iso.includes(f.id)) };
-    activeLayer = L.geoJSON(fc, {
-      style: { color: b.color, weight: 1.5, fillColor: b.color, fillOpacity: 0.38 },
-      onEachFeature: (f, l) => l.bindPopup(`<b>${b.name}</b><br>Страна: <b>${f.properties.name}</b><br><small>${b.members}</small>`)
-    }).addTo(window.map);
+    resetGroup();
+    b.keys.forEach(k => {
+      if (!POLY[k]) return;
+      const p = L.polygon(POLY[k], { color: b.color, weight: 2, fillColor: b.color, fillOpacity: 0.38 }).addTo(activeGroup);
+      p.bindPopup(`<b>${b.name}</b><br><small>${b.members}</small>`);
+    });
     window.map.setView([b.lat, b.lng], b.zoom);
     L.popup().setLatLng([b.lat, b.lng]).setContent(`<b>${b.name}</b><br><small>${b.desc}</small>`).openOn(window.map);
   };
 
-  window.paintCountry = async function(idx) {
+  window.paintCountry = function(idx) {
     const c = COUNTRIES[idx];
-    if (!c) return;
+    if (!c || !window.map || !window.L) return;
     openMap();
-    if (!window.map || !window.L) return;
-    if (activeLayer) { window.map.removeLayer(activeLayer); activeLayer = null; }
-    const data = await getGeoJson();
-    const fc = { type: 'FeatureCollection', features: data.features.filter(f => f.id === c.iso) };
-    activeLayer = L.geoJSON(fc, {
-      style: { color: '#0284c7', weight: 2.5, fillColor: '#0284c7', fillOpacity: 0.42 },
-      onEachFeature: (f, l) => l.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`)
-    }).addTo(window.map);
+    resetGroup();
+    if (POLY[c.key]) {
+      const p = L.polygon(POLY[c.key], { color: '#0284c7', weight: 2.5, fillColor: '#0284c7', fillOpacity: 0.42 }).addTo(activeGroup);
+      p.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
+    }
     window.map.setView([c.lat, c.lng], c.zoom);
     L.popup().setLatLng([c.lat, c.lng]).setContent(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`).openOn(window.map);
   };
 
-  window.paintAll = async function() {
-    openMap();
+  window.paintAll = function() {
     if (!window.map || !window.L) return;
-    if (activeLayer) { window.map.removeLayer(activeLayer); activeLayer = null; }
-    const data = await getGeoJson();
-    const mapByIso = Object.fromEntries(COUNTRIES.map(c => [c.iso, c]));
-    const fc = { type: 'FeatureCollection', features: data.features.filter(f => mapByIso[f.id]) };
-    activeLayer = L.geoJSON(fc, {
-      style: { color: '#0ea5e9', weight: 1.5, fillColor: '#0ea5e9', fillOpacity: 0.35 },
-      onEachFeature: (f, l) => {
-        const c = mapByIso[f.id];
-        l.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
-      }
-    }).addTo(window.map);
+    openMap();
+    resetGroup();
+    COUNTRIES.forEach(c => {
+      if (!POLY[c.key]) return;
+      const p = L.polygon(POLY[c.key], { color: '#0ea5e9', weight: 1.5, fillColor: '#0ea5e9', fillOpacity: 0.35 }).addTo(activeGroup);
+      p.bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
+    });
     window.map.setView(new L.LatLng(20, 0), 2);
   };
 
