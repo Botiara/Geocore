@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GeoCore v2.2</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1116; --card: #131c24; --border: #22303c;
+      --accent: #00e599; --blue: #38bdf8; --danger: #ef4444;
+      --text: #f1f5f9; --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 12px; padding-bottom: 86px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .sub { font-size: 11px; color: var(--accent); font-weight: 800; letter-spacing: 0.6px; }
+    h1 { font-size: 20px; font-weight: 800; }
+    .stats-row { display: flex; gap: 6px; }
+    .badge { background: var(--card); border: 1px solid var(--border); padding: 5px 10px; border-radius: 12px; text-align: center; }
+    .badge span { display: block; font-size: 9px; color: var(--muted); text-transform: uppercase; }
+    .badge b { color: var(--accent); font-size: 14px; }
+    .nav-tabs {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      background: rgba(19, 28, 36, 0.97); backdrop-filter: blur(10px);
+      padding: 8px 12px 12px; border-top: 1px solid var(--border);
+    }
+    .nav-btn {
+      background: transparent; border: 1px solid transparent; color: var(--muted);
+      padding: 8px 4px; border-radius: 12px; font-size: 12px; font-weight: 700;
+      display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;
+    }
+    .nav-btn .ico { font-size: 18px; }
+    .nav-btn.active { background: rgba(0, 229, 153, 0.12); color: var(--accent); border-color: rgba(0, 229, 153, 0.35); }
+    .hidden { display: none !important; }
+    .search-input {
+      width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text);
+      padding: 10px 14px; border-radius: 12px; font-size: 14px; margin-bottom: 8px; outline: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .layers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+    .layer-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 7px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .layer-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0, 229, 153, 0.08); }
+    .filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; scrollbar-width: none; }
+    .filters::-webkit-scrollbar { display: none; }
+    .f-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
+    .f-btn.active { background: var(--accent); color: #051b11; font-weight: 700; border-color: var(--accent); }
+    #studyMap, #gameMap { height: 46vh; min-height: 280px; border-radius: 16px; border: 1px solid var(--border); z-index: 1; background: #0f172a; }
+    .info-card { margin-top: 10px; background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 14px; padding: 14px; }
+    .info-cat { font-size: 11px; color: var(--accent); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+    .info-title { font-size: 17px; font-weight: 800; margin-bottom: 5px; }
+    .info-desc { font-size: 13px; line-height: 1.45; color: #cbd5e1; }
+    .mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .mode-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; cursor: pointer; text-align: left; }
+    .mode-card.active { border-color: var(--blue); background: rgba(56, 189, 248, 0.1); }
+    .mode-card h3 { font-size: 14px; color: #fff; margin-bottom: 3px; }
+    .mode-card p { font-size: 11px; color: var(--muted); }
+    .target-banner {
+      background: linear-gradient(135deg, #13232e, #16202a); border: 1px solid var(--blue);
+      border-radius: 14px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .target-banner b { font-size: 15px; color: var(--blue); display: block; }
+    .btn-main { background: var(--accent); color: #041d13; border: none; padding: 9px 14px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+    .quiz-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+    .opt-btn { width: 100%; text-align: left; background: #18232d; border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 12px; font-size: 14px; margin-top: 8px; cursor: pointer; }
+    .opt-btn.correct { background: rgba(0, 229, 153, 0.18); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+    .opt-btn.wrong { background: rgba(239, 68, 68, 0.18); border-color: var(--danger); color: #fca5a5; }
+    .guide-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+    .guide-cat { font-size: 11px; color: var(--blue); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; }
+    .guide-title { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+    .guide-rule { font-size: 13px; line-height: 1.45; color: #cbd5e1; margin-bottom: 8px; }
+    .guide-trap { font-size: 12px; color: #94a3b8; background: rgba(148, 163, 184, 0.08); border-left: 2px solid #475569; padding: 6px 10px; border-radius: 6px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="sub">GEOCORE v2.2 // <span id="objCount">99</span> ОБЪЕКТОВ</div>
+      <h1>География мира</h1>
+    </div>
+    <div class="stats-row">
+      <div class="badge"><span>СЕРИЯ</span><b id="streakVal">0🔥</b></div>
+      <div class="badge"><span>ОЧКИ</span><b id="scoreVal">0</b></div>
+    </div>
+  </div>
+
+  <div id="view-study">
+    <input type="text" class="search-input" id="mapSearch" placeholder="🔍 Найти город, море или океан..." oninput="drawStudyMarkers()" />
+    <div class="layers">
+      <button class="layer-btn active" onclick="setLayer('street', this)">🗺️ Подробная</button>
+      <button class="layer-btn" onclick="setLayer('dark', this)">🌑 Тёмная</button>
+      <button class="layer-btn" onclick="setLayer('relief', this)">⛰️ Рельеф</button>
+    </div>
+    <div class="filters" id="studyFilters"></div>
+    <div id="studyMap"></div>
+    <div class="info-card" id="infoCard">
+      <div class="info-cat" id="infoCat">КАРТОЧКА ОБЪЕКТА</div>
+      <div class="info-title" id="infoTitle">Выбери точку на карте</div>
+      <div class="info-desc" id="infoDesc">Нажми на любой маркер или введи название в поиск выше — карта перелетит к объекту и покажет справку.</div>
+    </div>
+  </div>
+
+  <div id="view-play" class="hidden">
+    <div class="mode-switch">
+      <div class="mode-card active" id="mCard-sniper" onclick="selectGameMode('sniper')">
+        <h3>🎯 Гео-Снайпер</h3>
+        <p>Найди объект кликом по карте на точность</p>
+      </div>
+      <div class="mode-card" id="mCard-quiz" onclick="selectGameMode('quiz')">
+        <h3>⚡ Блиц-Тест</h3>
+        <p>Вопросы ОГЭ с выбором ответа и комбо</p>
+      </div>
+    </div>
+    <div id="game-sniper">
+      <div class="target-banner">
+        <div>
+          <span style="font-size:11px;color:#94a3b8">НАЙДИ НА КАРТЕ:</span>
+          <b id="sniperTarget">Загрузка цели...</b>
+        </div>
+        <button class="btn-main" onclick="nextSniperRound()">Дальше ➔</button>
+      </div>
+      <div id="gameMap"></div>
+      <div class="info-card" id="sniperFeedback" style="border-left-color:#38bdf8">
+        <div class="info-cat" style="color:#38bdf8">ПРАВИЛА СНАЙПЕРА</div>
+        <div class="info-desc">Ткни в то место на карте, где находится загаданный объект. Чем ближе к цели (в км), тем больше очков!</div>
+      </div>
+    </div>
+    <div id="game-quiz" class="hidden">
+      <div class="quiz-box" id="quizContainer"></div>
+    </div>
+  </div>
+
+  <div id="view-guide" class="hidden">
+    <input type="text" class="search-input" id="guideSearch" placeholder="🔍 Поиск по правилам (азимут, циклон, почвы...)" oninput="renderGuide()" />
+    <div class="filters" id="guideFilters"></div>
+    <div id="guideList"></div>
+  </div>
+
+  <nav class="nav-tabs">
+    <button class="nav-btn active" onclick="switchView('study', this)"><span class="ico">🌍</span>Изучать</button>
+    <button class="nav-btn" onclick="switchView('play', this)"><span class="ico">🎮</span>Играть</button>
+    <button class="nav-btn" onclick="switchView('guide', this)"><span class="ico">📚</span>Справочник</button>
+  </nav>
+
+  <script>
+    const ALL_PLACES = [
+      { name: "Москва", region: "Города России", type: "city", lat: 55.7558, lng: 37.6173, desc: "Столица России, крупнейший транспортный и культурный узел Восточной Европы." },
+      { name: "Санкт-Петербург", region: "Города России", type: "city", lat: 59.9343, lng: 30.3351, desc: "Северная столица, крупнейший российский порт на Балтийском море в дельте Невы." },
+      { name: "Новосибирск", region: "Города России", type: "city", lat: 55.0084, lng: 82.9357, desc: "Третий по численности город России, научный центр Сибири на реке Обь." },
+      { name: "Екатеринбург", region: "Города России", type: "city", lat: 56.8389, lng: 60.6057, desc: "Крупнейший промышленный центр Урала на границе Европы и Азии." },
+      { name: "Казань", region: "Города России", type: "city", lat: 55.7961, lng: 49.1064, desc: "Столица Татарстана, крупный порт и центр машиностроения на левом берегу Волги." },
+      { name: "Нижний Новгород", region: "Города России", type: "city", lat: 56.3269, lng: 44.0059, desc: "Центр автопрома и речного судоходства у слияния Оки и Волги." },
+      { name: "Красноярск", region: "Города России", type: "city", lat: 56.0153, lng: 92.8932, desc: "Крупнейший центр алюминиевой промышленности у мощной Красноярской ГЭС на Енисее." },
+      { name: "Владивосток", region: "Города России", type: "city", lat: 43.1155, lng: 131.8855, desc: "Главный тихоокеанский порт России на Японском море и конечная станция Транссиба." },
+      { name: "Мурманск", region: "Города России", type: "city", lat: 68.9585, lng: 33.0827, desc: "Крупнейший в мире город за Полярным кругом; незамерзающий порт на Кольском заливе." },
+      { name: "Архангельск", region: "Города России", type: "city", lat: 64.5399, lng: 40.5158, desc: "Крупный центр лесной и целлюлозно-бумажной промышленности в устье Северной Двины." },
+      { name: "Калининград", region: "Города России", type: "city", lat: 54.7104, lng: 20.4522, desc: "Самый западный областной центр России (часовая зона МСК−1) на Балтийском море." },
+      { name: "Сочи", region: "Города России", type: "city", lat: 43.5855, lng: 39.7231, desc: "Главный курорт России в зоне влажных субтропиков на побережье Чёрного моря." },
+      { name: "Волгоград", region: "Города России", type: "city", lat: 48.7080, lng: 44.5133, desc: "Крупный промышленный центр Нижнего Поволжья, вытянутый вдоль правого берега Волги." },
+      { name: "Ростов-на-Дону", region: "Города России", type: "city", lat: 47.2357, lng: 39.7015, desc: "«Ворота Кавказа», крупнейший центр сельхозмашиностроения в устье реки Дон." },
+      { name: "Белгород", region: "Города России", type: "city", lat: 50.5997, lng: 36.5983, desc: "Центр добычи железных руд Курской магнитной аномалии (КМА) в лесостепной зоне." },
+      { name: "Норильск", region: "Города России", type: "city", lat: 69.3558, lng: 88.1893, desc: "Заполярный центр цветной металлургии (никель, медь, палладий) на юге Таймыра." },
+      { name: "Якутск", region: "Города России", type: "city", lat: 62.0355, lng: 129.6755, desc: "Самый крупный город на вечной мерзлоте с резко континентальным климатом на реке Лене." },
+      { name: "Петропавловск-Камчатский", region: "Города России", type: "city", lat: 53.0245, lng: 158.6435, desc: "Тихоокеанский порт на Камчатке в зоне активного вулканизма и землетрясений." },
+      { name: "Лондон", region: "Европа", type: "city", lat: 51.5074, lng: -0.1278, desc: "Столица Великобритании на реке Темзе; через пригород Гринвич проходит нулевой меридиан." },
+      { name: "Париж", region: "Европа", type: "city", lat: 48.8566, lng: 2.3522, desc: "Столица Франции на реке Сене, один из главных финансовых и культурных центров Европы." },
+      { name: "Берлин", region: "Европа", type: "city", lat: 52.5200, lng: 13.4050, desc: "Столица и крупнейший промышленный узел Германии на реке Шпрее." },
+      { name: "Рим", region: "Европа", type: "city", lat: 41.9028, lng: 12.4964, desc: "Столица Италии на реке Тибр, внутри которой расположен город-государство Ватикан." },
+      { name: "Мадрид", region: "Европа", type: "city", lat: 40.4168, lng: -3.7038, desc: "Самая высоко расположенная столица Евросоюза в центре Пиренейского полуострова." },
+      { name: "Стамбул", region: "Европа", type: "city", lat: 41.0082, lng: 28.9784, desc: "Крупнейший город Турции, расположенный сразу в двух частях света по берегам Босфора." },
+      { name: "Афины", region: "Европа", type: "city", lat: 37.9838, lng: 23.7275, desc: "Столица Греции со средиземноморским климатом (жаркое сухое лето, влажная зима)." },
+      { name: "Осло", region: "Европа", type: "city", lat: 59.9139, lng: 10.7522, desc: "Столица Норвегии, портовый город на берегу Осло-фьорда." },
+      { name: "Рейкьявик", region: "Европа", type: "city", lat: 64.1466, lng: -21.9426, desc: "Самая северная столица суверенного государства в мире (Исландия)." },
+      { name: "Пекин", region: "Азия", type: "city", lat: 39.9042, lng: 116.4074, desc: "Столица Китая, политический и образовательный центр на Великой Китайской равнине." },
+      { name: "Шанхай", region: "Азия", type: "city", lat: 31.2304, lng: 121.4737, desc: "Крупнейший морской порт мира в устье реки Янцзы на побережье Восточно-Китайского моря." },
+      { name: "Токио", region: "Азия", type: "city", lat: 35.6762, lng: 139.6503, desc: "Столица Японии на острове Хонсю, крупнейшая городская агломерация планеты." },
+      { name: "Сеул", region: "Азия", type: "city", lat: 37.5665, lng: 126.9780, desc: "Столица Республики Корея, крупнейший центр электроники и автомобилестроения." },
+      { name: "Нью-Дели", region: "Азия", type: "city", lat: 28.6139, lng: 77.2090, desc: "Столица Индии в бассейне реки Ганг с ярко выраженным муссонным климатом." },
+      { name: "Мумбаи", region: "Азия", type: "city", lat: 19.0760, lng: 72.8777, desc: "Финансовая столица и главный порт Индии на побережье Аравийского моря." },
+      { name: "Сингапур", region: "Азия", type: "city", lat: 1.3521, lng: 103.8198, desc: "Город-государство у Малаккского пролива почти на самом экваторе." },
+      { name: "Дубай", region: "Азия", type: "city", lat: 25.2048, lng: 55.2708, desc: "Крупнейший торговый и авиационный хаб Ближнего Востока на берегу Персидского залива." },
+      { name: "Астана", region: "Азия", type: "city", lat: 51.1694, lng: 71.4491, desc: "Столица Казахстана в зоне сухих степей с резко континентальным климатом." },
+      { name: "Каир", region: "Африка", type: "city", lat: 30.0444, lng: 31.2357, desc: "Столица Египта в вершине дельты реки Нил, крупнейший мегаполис Африки." },
+      { name: "Лагос", region: "Африка", type: "city", lat: 6.5244, lng: 3.3792, desc: "Крупнейший портовый и экономический центр Нигерии на берегу Гвинейского залива." },
+      { name: "Найроби", region: "Африка", type: "city", lat: -1.2921, lng: 36.8219, desc: "Столица Кении в Восточной Африке, расположенная на высоте более 1600 м." },
+      { name: "Кейптаун", region: "Африка", type: "city", lat: -33.9249, lng: 18.4241, desc: "Порт на юго-западе ЮАР у мыса Доброй Надежды." },
+      { name: "Нью-Йорк", region: "Америка", type: "city", lat: 40.7128, lng: -74.0060, desc: "Крупнейший мегаполис и финансовый центр США в устье реки Гудзон." },
+      { name: "Вашингтон", region: "Америка", type: "city", lat: 38.9072, lng: -77.0369, desc: "Столица США в федеральном округе Колумбия на реке Потомак." },
+      { name: "Лос-Анджелес", region: "Америка", type: "city", lat: 34.0522, lng: -118.2437, desc: "Крупнейший порт и центр киноиндустрии США на тихоокеанском побережье Калифорнии." },
+      { name: "Оттава", region: "Америка", type: "city", lat: 45.4215, lng: -75.6972, desc: "Столица Канады, расположенная на границе провинций Онтарио и Квебек." },
+      { name: "Мехико", region: "Америка", type: "city", lat: 19.4326, lng: -99.1332, desc: "Высокогорная столица Мексики (высота ~2240 м) в котловине Мексиканского нагорья." },
+      { name: "Бразилиа", region: "Америка", type: "city", lat: -15.7975, lng: -47.8919, desc: "Специально построенная в центре страны столица Бразилии в зоне саванн." },
+      { name: "Сан-Паулу", region: "Америка", type: "city", lat: -23.5505, lng: -46.6333, desc: "Крупнейший промышленный и финансовый мегаполис Южного полушария в Бразилии." },
+      { name: "Буэнос-Айрес", region: "Америка", type: "city", lat: -34.6037, lng: -58.3816, desc: "Столица Аргентины на берегу залива Ла-Плата в зоне степей (пампы)." },
+      { name: "Лима", region: "Америка", type: "city", lat: -12.0464, lng: -77.0428, desc: "Столица Перу; из-за холодного Перуанского течения здесь почти не бывает дождей." },
+      { name: "Канберра", region: "Австралия и Океания", type: "city", lat: -35.2809, lng: 149.1300, desc: "Столица Австралии, построенная как компромисс между Сиднеем и Мельбурном." },
+      { name: "Сидней", region: "Австралия и Океания", type: "city", lat: -33.8688, lng: 151.2093, desc: "Крупнейший и старейший город Австралии на берегу Тасманова моря." },
+      { name: "Веллингтон", region: "Австралия и Океания", type: "city", lat: -41.2865, lng: 174.7762, desc: "Столица Новой Зеландии и самая южная столица суверенного государства в мире." },
+
+      { name: "Тихий океан", region: "Океаны", type: "ocean", lat: 0.0, lng: -160.0, desc: "Самый большой (178,7 млн км²) и глубокий океан Земли; здесь находится Марианский жёлоб (10 994 м)." },
+      { name: "Атлантический океан", region: "Океаны", type: "ocean", lat: 15.0, lng: -35.0, desc: "Второй по величине океан; самый вытянутый с севера на юг и самый освоенный для судоходства." },
+      { name: "Индийский океан", region: "Океаны", type: "ocean", lat: -20.0, lng: 80.0, desc: "Третий по площади океан, расположенный преимущественно в Южном полушарии." },
+      { name: "Северный Ледовитый океан", region: "Океаны", type: "ocean", lat: 85.0, lng: 0.0, desc: "Самый маленький и мелководный океан Земли, окружённый Евразией и Северной Америкой." },
+      { name: "Южный океан", region: "Океаны", type: "ocean", lat: -65.0, lng: 0.0, desc: "Воды вокруг Антарктиды с мощнейшим холодным течением Западных Ветров." },
+
+      { name: "Берингово море", region: "Моря Тихого океана", type: "sea", lat: 58.0, lng: -175.0, desc: "Самое большое и глубокое море у берегов России, отделяющее Чукотку от Аляски." },
+      { name: "Охотское море", region: "Моря Тихого океана", type: "sea", lat: 54.0, lng: 148.0, desc: "Море у берегов Камчатки и Сахалина с самыми высокими приливами в России (до 13 м)." },
+      { name: "Японское море", region: "Моря Тихого океана", type: "sea", lat: 40.0, lng: 135.0, desc: "Море между материковой Азией и Японскими островами; здесь расположен порт Владивосток." },
+      { name: "Жёлтое море", region: "Моря Тихого океана", type: "sea", lat: 35.0, lng: 123.0, desc: "Мелководное море между Китаем и Кореей, названное из-за жёлтого ила реки Хуанхэ." },
+      { name: "Восточно-Китайское море", region: "Моря Тихого океана", type: "sea", lat: 28.0, lng: 125.0, desc: "Полузамкнутое море у берегов Китая, куда впадает река Янцзы." },
+      { name: "Южно-Китайское море", region: "Моря Тихого океана", type: "sea", lat: 14.0, lng: 114.0, desc: "Крупнейшее и самое тёплое море у берегов Юго-Восточной Азии." },
+      { name: "Филиппинское море", region: "Моря Тихого океана", type: "sea", lat: 20.0, lng: 132.0, desc: "Самое большое и глубокое межостровное море мира (глубины свыше 10 000 м)." },
+      { name: "Коралловое море", region: "Моря Тихого океана", type: "sea", lat: -18.0, lng: 155.0, desc: "Тропическое море у северо-востока Австралии, где расположен Большой Барьерный риф." },
+      { name: "Тасманово море", region: "Моря Тихого океана", type: "sea", lat: -38.0, lng: 160.0, desc: "Море в юго-западной части Тихого океана между Австралией и Новой Зеландией." },
+      { name: "Море Фиджи", region: "Моря Тихого океана", type: "sea", lat: -20.0, lng: 175.0, desc: "Межостровное море в Океании между островами Фиджи, Вануату и Новой Каледонией." },
+      { name: "Яванское море", region: "Моря Тихого океана", type: "sea", lat: -5.0, lng: 111.0, desc: "Мелководное межостровное море в Индонезии между островами Ява, Калимантан и Суматра." },
+      { name: "Море Банда", region: "Моря Тихого океана", type: "sea", lat: -6.0, lng: 128.0, desc: "Глубокое межостровное море в Малайском архипелаге в зоне высокой сейсмичности." },
+      { name: "Балтийское море", region: "Моря Атлантического океана", type: "sea", lat: 57.5, lng: 19.5, desc: "Внутриматериковое море с очень низкой солёностью воды из-за большого притока речных вод." },
+      { name: "Северное море", region: "Моря Атлантического океана", type: "sea", lat: 56.5, lng: 3.5, desc: "Шельфовое море между Великобританией и Скандинавией, богатое нефтью и газом." },
+      { name: "Средиземное море", region: "Моря Атлантического океана", type: "sea", lat: 35.0, lng: 18.0, desc: "Межматериковое море между Европой, Азией и Африкой (Гибралтарский пролив)." },
+      { name: "Чёрное море", region: "Моря Атлантического океана", type: "sea", lat: 43.4, lng: 34.5, desc: "Внутреннее море; глубже 150–200 м вода заражена сероводородом." },
+      { name: "Азовское море", region: "Моря Атлантического океана", type: "sea", lat: 46.0, lng: 36.5, desc: "Самое мелкое море в мире (глубина до 13,5 м), связано с Чёрным Керченским проливом." },
+      { name: "Эгейское море", region: "Моря Атлантического океана", type: "sea", lat: 38.5, lng: 25.0, desc: "Море с тысячами островов между Грецией и Турцией." },
+      { name: "Адриатическое море", region: "Моря Атлантического океана", type: "sea", lat: 43.0, lng: 15.5, desc: "Часть Средиземного моря между Апеннинским и Балканским полуостровами." },
+      { name: "Ионическое море", region: "Моря Атлантического океана", type: "sea", lat: 37.5, lng: 18.5, desc: "Самая глубокая часть Средиземного моря (до 5121 м) к югу от Италии." },
+      { name: "Тирренское море", region: "Моря Атлантического океана", type: "sea", lat: 40.0, lng: 12.5, desc: "Часть Средиземного моря у западного побережья Италии между Сардинией и Сицилией." },
+      { name: "Карибское море", region: "Моря Атлантического океана", type: "sea", lat: 15.0, lng: -75.0, desc: "Тропическое море между Северной и Южной Америкой, откуда начинается Гольфстрим." },
+      { name: "Саргассово море", region: "Моря Атлантического океана", type: "sea", lat: 28.0, lng: -66.0, desc: "Единственное в мире море без сухопутных берегов, ограниченное течениями." },
+      { name: "Лабрадорское море", region: "Моря Атлантического океана", type: "sea", lat: 57.0, lng: -55.0, desc: "Окраинное море между полуостровом Лабрадор и Гренландией." },
+      { name: "Ирландское море", region: "Моря Атлантического океана", type: "sea", lat: 53.5, lng: -5.0, desc: "Небольшое море, разделяющее острова Великобритания и Ирландия." },
+      { name: "Мраморное море", region: "Моря Атлантического океана", type: "sea", lat: 40.7, lng: 28.2, desc: "Самое маленькое по площади море мира внутри Турции (между Босфором и Дарданеллами)." },
+      { name: "Красное море", region: "Моря Индийского океана", type: "sea", lat: 20.0, lng: 38.5, desc: "Самое солёное (до 42‰) и самое тёплое море Мирового океана между Африкой и Аравией." },
+      { name: "Аравийское море", region: "Моря Индийского океана", type: "sea", lat: 16.0, lng: 64.0, desc: "Крупнейшее окраинное море Индийского океана между Аравией и Индостаном." },
+      { name: "Андаманское море", region: "Моря Индийского океана", type: "sea", lat: 10.0, lng: 95.5, desc: "Полузамкнутое море у берегов Мьянмы и Таиланда." },
+      { name: "Тиморское море", region: "Моря Индийского океана", type: "sea", lat: -11.5, lng: 126.0, desc: "Окраинное море между островом Тимор и северным побережьем Австралии." },
+      { name: "Арафурское море", region: "Моря Индийского океана", type: "sea", lat: -9.0, lng: 135.0, desc: "Мелководное шельфовое море между северной Австралией и островом Новая Гвинея." },
+      { name: "Баренцево море", region: "Моря Северного Ледовитого океана", type: "sea", lat: 74.0, lng: 36.0, desc: "Единственное море Северного Ледовитого океана, юго-запад которого не замерзает зимой." },
+      { name: "Белое море", region: "Моря Северного Ледовитого океана", type: "sea", lat: 65.5, lng: 37.5, desc: "Внутреннее море на севере европейской части России (порты Архангельск, Северодвинск)." },
+      { name: "Карское море", region: "Моря Северного Ледовитого океана", type: "sea", lat: 74.0, lng: 72.0, desc: "Суровое арктическое море к востоку от Новой Земли, куда впадают Обь и Енисей." },
+      { name: "Море Лаптевых", region: "Моря Северного Ледовитого океана", type: "sea", lat: 75.0, lng: 125.0, desc: "«Фабрика льдов» Арктики между Таймыром и Новосибирскими островами (устье Лены)." },
+      { name: "Восточно-Сибирское море", region: "Моря Северного Ледовитого океана", type: "sea", lat: 73.0, lng: 162.0, desc: "Самое суровое и ледовитое море России между Новосибирскими островами и о. Врангеля." },
+      { name: "Чукотское море", region: "Моря Северного Ледовитого океана", type: "sea", lat: 69.0, lng: -171.0, desc: "Самое восточное море Северного Ледовитого океана у берегов Чукотки и Аляски." },
+      { name: "Норвежское море", region: "Моря Северного Ледовитого океана", type: "sea", lat: 67.0, lng: 2.0, desc: "Незамерзающее море у берегов Скандинавии, обогреваемое тёплым Норвежским течением." },
+      { name: "Гренландское море", region: "Моря Северного Ледовитого океана", type: "sea", lat: 76.0, lng: -8.0, desc: "Глубокое арктическое море между Гренландией и архипелагом Шпицберген." },
+      { name: "Море Бофорта", region: "Моря Северного Ледовитого океана", type: "sea", lat: 72.0, lng: -137.0, desc: "Окраинное море к северу от Аляски и Канады (устье реки Маккензи)." },
+      { name: "Море Баффина", region: "Моря Северного Ледовитого океана", type: "sea", lat: 73.0, lng: -67.0, desc: "Море между западным берегом Гренландии и островом Баффинова Земля." },
+      { name: "Море Уэдделла", region: "Моря Южного океана", type: "sea", lat: -73.0, lng: -45.0, desc: "Антарктическое окраинное море у Антарктического полуострова." },
+      { name: "Море Росса", region: "Моря Южного океана", type: "sea", lat: -75.0, lng: 175.0, desc: "Самое южное море Земли у берегов Антарктиды с гигантским шельфовым ледником Росса." }
+    ];
+
+    const ALL_QUESTIONS = [
+      { q: "В каком направлении дует ветер?", options: ["Из области низкого давления (Н) в высокое (В)", "Из области высокого давления (В) в низкое (Н)", "Строго с севера на юг"], a: 1 },
+      { q: "Какое море имеет самую высокую солёность в Мировом океане (до 42‰)?", options: ["Балтийское море", "Чёрное море", "Красное море"], a: 2 },
+      { q: "Какое море омывает берега России и не замерзает зимой на юго-западе?", options: ["Баренцево море", "Восточно-Сибирское море", "Море Лаптевых"], a: 0 },
+      { q: "Какое море является самым мелким в мире (глубина до 13,5 м)?", options: ["Белое море", "Азовское море", "Жёлтое море"], a: 1 },
+      { q: "Как называется единственное море на Земле без сухопутных берегов?", options: ["Саргассово море", "Филиппинское море", "Коралловое море"], a: 0 },
+      { q: "Какая точка является самой высокой в России и Европе (5642 м)?", options: ["г. Народная", "г. Эльбрус", "г. Белуха"], a: 1 },
+      { q: "В какой природной зоне формируются самые плодородные почвы — чернозёмы?", options: ["Тайга", "Степи и лесостепи", "Тундра"], a: 1 },
+      { q: "Какое холодное течение стало причиной образования береговой пустыни Атакама?", options: ["Гольфстрим", "Перуанское течение", "Куросио"], a: 1 },
+      { q: "Какой азимут соответствует направлению на юго-восток?", options: ["45°", "135°", "225°"], a: 1 },
+      { q: "Какой город России является крупнейшим центром алюминиевой промышленности у мощной ГЭС?", options: ["Калининград", "Красноярск", "Сочи"], a: 1 },
+      { q: "В какой часовой зоне находится Калининград относительно Москвы (МСК)?", options: ["МСК−1", "МСК+1", "МСК+2"], a: 0 },
+      { q: "Какая столица является самой северной столицей суверенного государства в мире?", options: ["Осло", "Рейкьявик", "Хельсинки"], a: 1 },
+      { q: "Какой пролив соединяет Чёрное море с Азовским?", options: ["Берингов пролив", "Гибралтарский пролив", "Керченский пролив"], a: 2 },
+      { q: "Какая река впадает в море Лаптевых?", options: ["Лена", "Волга", "Дон"], a: 0 }
+    ];
+
+    const guideItems = [
+      { cat: "Карты и координаты", title: "Географическая широта и долгота", rule: "Широта (с.ш. / ю.ш.) отсчитывается от экватора (0°–90°). Долгота (в.д. / з.д.) — от Гринвичского меридиана (0°–180°).", trap: "Чукотский полуостров восточнее 180° меридиана имеет западную долготу (з.д.)." },
+      { cat: "Карты и координаты", title: "Определение азимута", rule: "Азимут — угол по часовой стрелке от направления на Север (0°): Восток = 90°, Юг = 180°, Запад = 270°, Юго-Восток = 135°.", trap: "Центр транспортира всегда ставится строго в точку, из которой начинается движение." },
+      { cat: "Карты и координаты", title: "Профиль рельефа местности", rule: "Горизонтали соединяют точки с одинаковой высотой. Бергштрихи показывают направление вниз по склону.", trap: "Чем ближе горизонтали друг к другу, тем круче склон." },
+      { cat: "Климат", title: "Циклон и антициклон", rule: "Циклон (Н) — низкое давление в центре, воздух поднимается, облачно и осадки. Антициклон (В) — высокое давление, воздух опускается, ясно.", trap: "Ветер всегда дует из области высокого давления (В) в область низкого давления (Н)." },
+      { cat: "Климат", title: "Чтение климатограммы (ОГЭ №18)", rule: "График показывает температуру по месяцам: выгибается вверх в июле — Северное полушарие, прогибается вниз — Южное. Столбики — осадки.", trap: "Если температура круглый год около +25°C и осадков >2000 мм — это экваториальный пояс." },
+      { cat: "Климат", title: "Влияние морских течений", rule: "Тёплые течения (Гольфстрим, Северо-Атлантическое) приносят влагу. Холодные (Перуанское, Бенгельское) высушивают воздух и образуют береговые пустыни.", trap: "Пустыня Атакама и пустыня Намиб возникли на берегу океана из-за холодных течений." },
+      { cat: "Природа России", title: "Смена природных зон и почв с севера на юг", rule: "Арктические пустыни → Тундра (глеевые) → Тайга (подзолистые) → Смешанные леса (дерново-подзолистые) → Степи (чернозёмы) → Пустыни (бурые).", trap: "Самые плодородные почвы (чернозёмы) формируются под травянистой растительностью степей, а не в лесах." },
+      { cat: "Природа России", title: "Крайние точки России", rule: "Северная материковая — мыс Челюскин; Южная — гора Базардюзю (Дагестан); Западная — Балтийская коса; Восточная материковая — мыс Дежнёва.", trap: "В заданиях ОГЭ различают материковые и островные крайние точки (мыс Флигели, о. Ратманова)." },
+      { cat: "Население и время", title: "Часовые зоны России (ОГЭ №19)", rule: "В России 11 часовых зон (от МСК−1 в Калининграде до МСК+9 на Камчатке). При движении на восток время прибавляется.", trap: "При перелёте на восток к местному времени вылета прибавляют и разницу поясов, и время полёта." },
+      { cat: "Население и время", title: "Плотность населения России", rule: "Главная полоса расселения (треугольник Санкт-Петербург — Сочи — Иркутск) вмещает более 90% населения страны.", trap: "Самая низкая плотность населения — в Чукотском АО, Ненецком АО, Якутии и Магаданской области." },
+      { cat: "Хозяйство России", title: "Факторы размещения промышленности", rule: "Алюминиевые заводы строят у дешёвой электроэнергии (ГЭС Сибири); целлюлозно-бумажные — у леса и воды; нефтепереработку — у потребителя.", trap: "Сырьё для алюминия (глинозём) везут издалека — решающий фактор только дешёвая электроэнергия." },
+      { cat: "Хозяйство России", title: "Топливные и рудные базы", rule: "Нефть и газ — Западная Сибирь (ХМАО, ЯНАО); каменный уголь — Кузбасс и Печорский бассейн; железная руда — Курская магнитная аномалия (КМА).", trap: "КМА (Белгородская и Курская обл.) — крупнейший в мире железорудный бассейн по запасам." },
+      { cat: "Мировые рекорды", title: "Главные географические рекорды мира", rule: "Самая высокая вершина — Джомолунгма (8848 м); самое глубокое озеро — Байкал (1642 м); самая полноводная река — Амазонка.", trap: "Каспийское море — самое большое по площади озеро в мире, а не самое глубокое." },
+      { cat: "Мировые рекорды", title: "Рекорды морей Мирового океана", rule: "Самое солёное море — Красное (до 42‰); самое пресное — Балтийское; самое мелкое — Азовское (13,5 м); без берегов — Саргассово.", trap: "В Чёрном море глубже 150–200 м жизнь отсутствует из-за растворённого сероводорода." }
+    ];
+
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) { tg.expand(); tg.ready(); }
+    function haptic(type) {
+      try { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type || 'light'); } catch(e) {}
+    }
+
+    document.getElementById('objCount').textContent = ALL_PLACES.length;
+    let score = Number(localStorage.getItem('gc_score') || 0);
+    let streak = 0;
+    document.getElementById('scoreVal').textContent = score;
+
+    function addScore(pts, win = true) {
+      score += pts;
+      streak = win ? streak + 1 : 0;
+      localStorage.setItem('gc_score', score);
+      document.getElementById('scoreVal').textContent = score;
+      document.getElementById('streakVal').textContent = streak + '🔥';
+    }
+
+    function switchView(view, btn) {
+      haptic('light');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ['study', 'play', 'guide'].forEach(v => document.getElementById('view-' + v).classList.add('hidden'));
+      document.getElementById('view-' + view).classList.remove('hidden');
+
+      if (view === 'study' && studyMap) setTimeout(() => studyMap.invalidateSize(), 120);
+      if (view === 'play') {
+        initGameMap();
+        setTimeout(() => {
+          if (gameMap) gameMap.invalidateSize();
+          if (!currentTarget) nextSniperRound();
+        }, 120);
+      }
+      if (view === 'guide') renderGuide();
+    }
+
+    let studyMap = null, studyLayer = null, activeTile = null;
+    const tileUrls = {
+      street: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      dark: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      relief: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}'
+    };
+
+    const regions = ['Все', ...new Set(ALL_PLACES.map(p => p.region))];
+    let curRegion = 'Все';
+
+    function renderStudyFilters() {
+      document.getElementById('studyFilters').innerHTML = regions.map(r =>
+        `<button class="f-btn ${r === curRegion ? 'active' : ''}" onclick="curRegion='${r}';renderStudyFilters();drawStudyMarkers()">${r}</button>`
+      ).join('');
+    }
+
+    function selectPlace(p) {
+      haptic('medium');
+      document.getElementById('infoCat').textContent = p.region;
+      document.getElementById('infoTitle').textContent = p.name;
+      document.getElementById('infoDesc').textContent = p.desc;
+      if (studyMap) studyMap.flyTo([p.lat, p.lng], 4, { duration: 0.8 });
+    }
+
+    function drawStudyMarkers() {
+      if (!studyMap || !studyLayer) return;
+      studyLayer.clearLayers();
+      const q = (document.getElementById('mapSearch').value || '').toLowerCase().trim();
+      const list = ALL_PLACES.filter(p => (curRegion === 'Все' || p.region === curRegion) && (!q || p.name.toLowerCase().includes(q)));
+      list.forEach(p => {
+        const col = p.type === 'city' ? '#00e599' : (p.type === 'ocean' ? '#38bdf8' : '#fbbf24');
+        const m = L.circleMarker([p.lat, p.lng], { radius: 7, color: col, fillColor: col, fillOpacity: 0.65, weight: 2 }).addTo(studyLayer);
+        m.bindTooltip(p.name, { direction: 'top' });
+        m.on('click', () => { selectPlace(p); addScore(5, true); });
+      });
+      if (q && list.length === 1) selectPlace(list);
+    }
+
+    function setLayer(type, btn) {
+      haptic('light');
+      document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (studyMap && activeTile) {
+        studyMap.removeLayer(activeTile);
+        activeTile = L.tileLayer(tileUrls[type], { noWrap: true }).addTo(studyMap);
+      }
+    }
+
+    function initStudyMap() {
+      if (typeof L === 'undefined') return;
+      studyMap = L.map('studyMap', { maxBounds: [[-85, -180], [85, 180]], maxBoundsViscosity: 1.0 }).setView([30, 35], 2);
+      activeTile = L.tileLayer(tileUrls.street, { noWrap: true }).addTo(studyMap);
+      studyLayer = L.layerGroup().addTo(studyMap);
+      drawStudyMarkers();
+    }
+
+    renderStudyFilters();
+    initStudyMap();
+
+    let gameMap = null, sniperLayer = null, currentTarget = null, roundLocked = false;
+
+    function initGameMap() {
+      if (gameMap || typeof L === 'undefined') return;
+      gameMap = L.map('gameMap', { maxBounds: [[-85, -180], [85, 180]], maxBoundsViscosity: 1.0 }).setView([25, 20], 2);
+      L.tileLayer(tileUrls.dark, { noWrap: true }).addTo(gameMap);
+      sniperLayer = L.layerGroup().addTo(gameMap);
+
+      gameMap.on('click', (e) => {
+        if (!currentTarget || roundLocked) return;
+        roundLocked = true;
+        const wrapped = e.latlng.wrap();
+        const dist = calcDistanceKm(wrapped.lat, wrapped.lng, currentTarget.lat, currentTarget.lng);
+        L.circleMarker([wrapped.lat, wrapped.lng], { radius: 6, color: '#ef4444', fillOpacity: 0.8 }).addTo(sniperLayer);
+        L.circleMarker([currentTarget.lat, currentTarget.lng], { radius: 8, color: '#00e599', fillOpacity: 0.8 }).addTo(sniperLayer);
+
+        let drawTargetLng = currentTarget.lng;
+        if (Math.abs(wrapped.lng - drawTargetLng) > 180) {
+          drawTargetLng += wrapped.lng > 0 ? 360 : -360;
+        }
+        L.polyline([[wrapped.lat, wrapped.lng], [currentTarget.lat, drawTargetLng]], { color: '#38bdf8', dashArray: '5,5' }).addTo(sniperLayer);
+
+        let pts = dist < 400 ? 30 : (dist < 1200 ? 15 : (dist < 2800 ? 5 : 0));
+        haptic(pts > 0 ? 'medium' : 'heavy');
+        addScore(pts, pts > 0);
+        document.getElementById('sniperFeedback').innerHTML = `
+          <div class="info-cat" style="color:${pts > 0 ? '#00e599' : '#ef4444'}">${pts > 0 ? 'ТОЧНОЕ ПОПАДАНИЕ!' : 'ДАЛЕКОВАТО'}</div>
+          <div class="info-desc">Промах до точки «${currentTarget.name}»: <b>${dist} км</b>. Начислено: <b>+${pts} очков</b>. Нажми «Дальше ➔».</div>
+        `;
+      });
+    }
+
+    function selectGameMode(mode) {
+      haptic('light');
+      document.getElementById('mCard-sniper').classList.toggle('active', mode === 'sniper');
+      document.getElementById('mCard-quiz').classList.toggle('active', mode === 'quiz');
+      document.getElementById('game-sniper').classList.toggle('hidden', mode !== 'sniper');
+      document.getElementById('game-quiz').classList.toggle('hidden', mode !== 'quiz');
+      if (mode === 'sniper') {
+        initGameMap();
+        setTimeout(() => { if (gameMap) gameMap.invalidateSize(); if (!currentTarget) nextSniperRound(); }, 100);
+      }
+      if (mode === 'quiz') renderQuiz();
+    }
+
+    function nextSniperRound() {
+      haptic('light');
+      initGameMap();
+      if (sniperLayer) sniperLayer.clearLayers();
+      roundLocked = false;
+      currentTarget = ALL_PLACES[Math.floor(Math.random() * ALL_PLACES.length)];
+      document.getElementById('sniperTarget').textContent = `${currentTarget.name} (${currentTarget.region})`;
+      document.getElementById('sniperFeedback').innerHTML = `<div class="info-desc">Ткни на карту, где находится <b>${currentTarget.name}</b>!</div>`;
+    }
+
+    function calcDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180;
+      let dLonRaw = lon2 - lon1;
+      if (dLonRaw > 180) dLonRaw -= 360;
+      if (dLonRaw < -180) dLonRaw += 360;
+      const dLon = dLonRaw * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+      return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+    }
+
+    let qIdx = 0, qScore = 0, qAnswered = false;
+    function renderQuiz() {
+      const box = document.getElementById('quizContainer');
+      if (qIdx >= ALL_QUESTIONS.length) {
+        box.innerHTML = `<h3>Раунд завершён: ${qScore} из ${ALL_QUESTIONS.length}</h3>
+          <p style="font-size:13px;color:#94a3b8;margin-top:6px">Отличная тренировка по базе ОГЭ!</p>
+          <button class="btn-main" style="margin-top:12px;width:100%" onclick="qIdx=0;qScore=0;renderQuiz()">Пройти ещё раз</button>`;
+        return;
+      }
+      qAnswered = false;
+      const cur = ALL_QUESTIONS[qIdx];
+      box.innerHTML = `<div style="font-size:11px;color:#38bdf8;font-weight:700">ВОПРОС ${qIdx+1} ИЗ ${ALL_QUESTIONS.length}</div>
+        <div style="font-size:16px;font-weight:700;margin:8px 0">${cur.q}</div>
+        ${cur.options.map((o, i) => `<button class="opt-btn" onclick="checkQuiz(${i}, this)">${o}</button>`).join('')}`;
+    }
+
+    function checkQuiz(i, btn) {
+      if (qAnswered) return;
+      qAnswered = true;
+      const cur = ALL_QUESTIONS[qIdx];
+      const all = document.querySelectorAll('.opt-btn');
+      if (i === cur.a) { btn.classList.add('correct'); qScore++; addScore(15, true); haptic('medium'); }
+      else { btn.classList.add('wrong'); all[cur.a].classList.add('correct'); addScore(0, false); haptic('heavy'); }
+      setTimeout(() => { qIdx++; renderQuiz(); }, 950);
+    }
+
+    const gCats = ['Все', ...new Set(guideItems.map(g => g.cat))];
+    let curGCat = 'Все';
+
+    function renderGuide() {
+      document.getElementById('guideFilters').innerHTML = gCats.map(c =>
+        `<button class="f-btn ${c === curGCat ? 'active' : ''}" onclick="curGCat='${c}';renderGuide()">${c}</button>`
+      ).join('');
+      const q = (document.getElementById('guideSearch').value || '').toLowerCase().trim();
+      const filtered = guideItems.filter(g => (curGCat === 'Все' || g.cat === curGCat) && (!q || g.title.toLowerCase().includes(q) || g.rule.toLowerCase().includes(q) || g.trap.toLowerCase().includes(q)));
+      document.getElementById('guideList').innerHTML = filtered.map(g => `
+        <div class="guide-card">
+          <div class="guide-cat">${g.cat}</div>
+          <div class="guide-title">${g.title}</div>
+          <div class="guide-rule">${g.rule}</div>
+          <div class="guide-trap">На заметку: ${g.trap}</div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
