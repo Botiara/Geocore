@@ -28,7 +28,6 @@
     { key: 'JPN', name: '🇯🇵 Япония', region: 'Азия', gov: 'Конституционная монархия', blocks: 'G7, QUAD', desc: 'Технологический лидер Восточной Азии, робототехника и автопром.', lat: 36, lng: 138, zoom: 4 },
     { key: 'BRA', name: '🇧🇷 Бразилия', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'БРИКС+, МЕРКОСУР', desc: 'Крупнейшая страна Южной Америки, мировой гигант агроэкспорта.', lat: -10, lng: -52, zoom: 3 }
   ];
-
   let activeGroup = null, realGeo = null;
 
   async function loadRealBorders() {
@@ -108,7 +107,8 @@
     };
     nav.appendChild(btn);
 
-    const view = document.createElement('div'); view.id = 'view-geopol'; view.className = 'hidden'; view.style.padding = '12px';
+    const view = document.createElement('div');
+    view.id = 'view-geopol'; view.className = 'hidden'; view.style.padding = '12px';
     view.innerHTML = '<div class="filters" id="geopolFilters" style="margin-bottom:10px;"></div><div id="geopolList"></div>';
     nav.parentNode.insertBefore(view, nav);
   }
