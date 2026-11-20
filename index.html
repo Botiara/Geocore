@@ -494,7 +494,7 @@ const ACTIVE_GUIDE = (window.GUIDE_DATA && window.GUIDE_DATA.length) ? window.GU
     if (typeof studyMap !== 'undefined') window.map = studyMap;
 
 
-   ['pro_gate.js', 'oge_data.js', 'geopolitics_data.js', 'russia_data.js', 'guides_extra.js'].forEach(file => {
+   ['pro_gate.js', 'oge_data.js', 'geopolitics_data.js', 'russia_data.js', 'guides_extra.js', 'relations_data.js'].forEach(file => {
     const s = document.createElement('script');
     s.src = file + '?t=' + Date.now();
     document.body.appendChild(s);
