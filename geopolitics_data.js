@@ -25,7 +25,7 @@
   const POLY = Object.fromEntries(Object.entries(RAW_POLY).map(([k, v]) => [k, v.split(';').map(p => p.split(',').map(Number))]));
 
   const BLOCKS = [
-    { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', keys: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE'], members: '32 страны (США, Канада, Британия, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -15, zoom: 2 },
+    { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', keys: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE','NOR','ESP','ITA','GRC','ROU','BRG','HUN','CZE']memberssrs: '32 страны (США, Канада, Британия, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -15, zoom: 2 },
     { id: 'brics', cat: 'Экономический блок', name: 'БРИКС+', color: '#16a34a', keys: ['RUS','CHN','IND','BRA','ZAF','IRN','EGY'], members: 'Россия, Китай, Индия, Бразилия, ЮАР, ОАЭ, Иран, Египет, Эфиопия, Индонезия', desc: 'Крупнейшие развивающиеся экономики мира (>35% мирового ВВП по ППС), расчёты в нацвалютах.', lat: 22, lng: 65, zoom: 2 },
     { id: 'odkb', cat: 'Военный блок', name: 'ОДКБ', color: '#dc2626', keys: ['RUS','BLR','KAZ'], members: 'Россия, Беларусь, Казахстан, Киргизия, Таджикистан', desc: 'Евразийский военно-политический союз (ст. 4: агрессия против одного — агрессия против всех).', lat: 55, lng: 75, zoom: 3 },
     { id: 'eaeu', cat: 'Экономический блок', name: 'ЕАЭС', color: '#d97706', keys: ['RUS','BLR','KAZ'], members: 'Россия, Беларусь, Казахстан, Армения, Киргизия', desc: 'Единый таможенный тариф, свобода движения товаров, услуг, капитала и рабочей силы.', lat: 55, lng: 75, zoom: 3 },
@@ -52,7 +52,26 @@
     { key: 'BRA', name: '🇧🇷 Бразилия', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'БРИКС+, МЕРКОСУР', desc: 'Крупнейшая страна Южной Америки, мировой гигант агроэкспорта.', lat: -10, lng: -52, zoom: 3 }
   ];
 
-  let activeGroup = null;
+  const ISO_NUM = { RUS:'643', CHN:'156', USA:'840', CAN:'124', FRA:'250', DEU:'276', GBR:'826', POL:'616', TUR:'792', FIN:'246', SWE:'752', IND:'356', BRA:'076', ZAF:'710', DZA:'012', EGY:'818', IRN:'364', BLR:'112', KAZ:'398', SAU:'682', JPN:'392', NOR:'578', ESP:'724', ITA:'380', GRC:'300', ROU:'642', BGR:'100', HUN:'348', CZE:'203', ARE:'784', ETH:'231', IDN:'360', KGZ:'417', TJK:'762', ARM:'051', UZB:'860', PAK:'586' };
+  let activeGroup = null, realGeo = null;
+
+  async function loadRealBorders() {
+    if (realGeo) return realGeo;
+    try {
+      if (!window.topojson) {
+        await new Promise((res, rej) => {
+          const s = document.createElement('script');
+          s.src = 'https://jsdelivr.net';
+          s.onload = res; s.onerror = rej; document.head.appendChild(s);
+        });
+      }
+      const r = await fetch('https://jsdelivr.net');
+      const topo = await r.json();
+      realGeo = window.topojson.feature(topo, topo.objects.countries);
+      return realGeo;
+    } catch (e) { return null; }
+  }
+
   function getM() { return (typeof studyMap !== 'undefined' && studyMap) || window.studyMap || window.map || null; }
   function goMap() {
     const b = document.querySelector('.nav-btn'); if (b) b.click();
@@ -61,28 +80,42 @@
   }
   function clearG(m) { if (activeGroup && m) m.removeLayer(activeGroup); activeGroup = L.layerGroup().addTo(m); }
 
-  window.paintBlock = function(id) {
+  function drawKeys(m, keys, color, popupHtml) {
+    if (realGeo) {
+      const nums = keys.map(k => ISO_NUM[k]).filter(Boolean);
+      const fc = { type: 'FeatureCollection', features: realGeo.features.filter(f => nums.includes(String(f.id).padStart(3, '0'))) };
+      L.geoJSON(fc, { style: { color: color, weight: 1.5, fillColor: color, fillOpacity: 0.38 } }).addTo(activeGroup).bindPopup(popupHtml);
+    } else {
+      keys.forEach(k => { if (POLY[k]) L.polygon(POLY[k], { color: color, weight: 2, fillColor: color, fillOpacity: 0.38 }).addTo(activeGroup).bindPopup(popupHtml); });
+    }
+  }
+
+  window.paintBlock = async function(id) {
     const b = BLOCKS.find(x => x.id === id), m = goMap();
     if (!b || !m || !window.L) return;
+    await loadRealBorders();
     clearG(m);
-    b.keys.forEach(k => { if (POLY[k]) L.polygon(POLY[k], { color: b.color, weight: 2, fillColor: b.color, fillOpacity: 0.38 }).addTo(activeGroup).bindPopup(`<b>${b.name}</b><br><small>${b.members}</small>`); });
+    drawKeys(m, b.keys, b.color, `<b>${b.name}</b><br><small>${b.members}</small>`);
     m.setView(new L.LatLng(b.lat, b.lng), b.zoom);
     L.popup().setLatLng(new L.LatLng(b.lat, b.lng)).setContent(`<b>${b.name}</b><br><small>${b.desc}</small>`).openOn(m);
   };
 
-  window.paintCountry = function(idx) {
+  window.paintCountry = async function(idx) {
     const c = COUNTRIES[idx], m = goMap();
     if (!c || !m || !window.L) return;
+    await loadRealBorders();
     clearG(m);
-    if (POLY[c.key]) L.polygon(POLY[c.key], { color: '#0284c7', weight: 2.5, fillColor: '#0284c7', fillOpacity: 0.42 }).addTo(activeGroup).bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`);
+    const pop = `<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`;
+    drawKeys(m, [c.key], '#0284c7', pop);
     m.setView(new L.LatLng(c.lat, c.lng), c.zoom);
-    L.popup().setLatLng(new L.LatLng(c.lat, c.lng)).setContent(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`).openOn(m);
+    L.popup().setLatLng(new L.LatLng(c.lat, c.lng)).setContent(pop).openOn(m);
   };
 
-  window.paintAll = function() {
+  window.paintAll = async function() {
     const m = goMap(); if (!m || !window.L) return;
+    await loadRealBorders();
     clearG(m);
-    COUNTRIES.forEach(c => { if (POLY[c.key]) L.polygon(POLY[c.key], { color: '#0ea5e9', weight: 1.5, fillColor: '#0ea5e9', fillOpacity: 0.35 }).addTo(activeGroup).bindPopup(`<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`); });
+    COUNTRIES.forEach(c => drawKeys(m, [c.key], '#0ea5e9', `<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`));
     m.setView(new L.LatLng(20, 0), 2);
   };
 
