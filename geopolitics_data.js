@@ -35,17 +35,23 @@
     try {
       if (!window.topojson) {
         await new Promise((res, rej) => {
+          async function loadRealBorders() {
+    if (realGeo) return realGeo;
+    try {
+      const h = 'https://' + 'cdn.jsdelivr.net/npm/';
+      if (!window.topojson) {
+        await new Promise((res, rej) => {
           const s = document.createElement('script');
-          s.src = 'https://jsdelivr.net';
+          s.src = h + 'topojson-client@3/dist/topojson-client.min.js';
           s.onload = res; s.onerror = rej; document.head.appendChild(s);
         });
       }
-      const r = await fetch('https://jsdelivr.net');
+      const r = await fetch(h + 'world-atlas@2/countries-110m.json');
       const topo = await r.json();
       realGeo = window.topojson.feature(topo, topo.objects.countries);
       return realGeo;
     } catch (e) { return null; }
-  }
+          }
 
   function getM() { return (typeof studyMap !== 'undefined' && studyMap) || window.studyMap || window.map || null; }
   function goMap() {
