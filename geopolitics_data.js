@@ -1,36 +1,13 @@
 (function() {
-  const RAW_POLY = {
-    RUS: '45,38;52,32;60,30;69,33;72,70;75,110;66,170;52,158;43,132;50,127;50,85;55,60;51,46',
-    CHN: '22,100;23,116;31,121;40,124;52,121;48,87;36,76;28,88',
-    USA: '25,-81;30,-97;32,-117;49,-124;49,-67;40,-74',
-    CAN: '49,-124;60,-139;70,-140;72,-80;52,-56;45,-67;49,-95',
-    FRA: '42.5,-1.5;48.5,-4.5;51,2.5;49,8;43.5,7;42.5,3',
-    DEU: '47.5,7.5;53.5,7;54.5,9;54,14;50,14.5;47.5,12.5',
-    GBR: '50,-5.5;55,-5;58.5,-5;58.5,-2;53,0.5;51,1.3',
-    POL: '49.5,14.5;54,14.5;54.5,23.5;50,23.5',
-    TUR: '36.5,26.5;41.5,26.5;41.5,44;37,44',
-    FIN: '60,21;66,24;69.5,29;60.5,28',
-    SWE: '56,13;68.5,18;66,24;59,18',
-    IND: '8,77;22,69;34,76;28,96;21,88',
-    BRA: '4,-60;-5,-35;-22,-41;-33,-53;-18,-58;-8,-72',
-    ZAF: '-22,17;-22,31;-29,31;-34,25;-34,18',
-    DZA: '19,-8;28,-8;36.5,-1;36.5,8.5;24,11;19,5',
-    EGY: '22,25;31.5,25;31.5,34;22,35',
-    IRN: '26,57;34,46;39,44.5;38,59;26,61',
-    BLR: '51.5,23.5;55.5,26.5;55.5,32;51.5,31',
-    KAZ: '42,52;51,51;54,75;49,86;42,70',
-    SAU: '17,43;29,36;31,47;24,55;17,52',
-    JPN: '31,130;35,135;43,144;41,140;34,132'
-  };
-  const POLY = Object.fromEntries(Object.entries(RAW_POLY).map(([k, v]) => [k, v.split(';').map(p => p.split(',').map(Number))]));
+  const ISO_NUM = { RUS:'643', CHN:'156', USA:'840', CAN:'124', FRA:'250', DEU:'276', GBR:'826', POL:'616', TUR:'792', FIN:'246', SWE:'752', IND:'356', BRA:'076', ZAF:'710', DZA:'012', EGY:'818', IRN:'364', BLR:'112', KAZ:'398', SAU:'682', JPN:'392', NOR:'578', ESP:'724', ITA:'380', GRC:'300', ROU:'642', BGR:'100', HUN:'348', CZE:'203', ARE:'784', ETH:'231', IDN:'360', KGZ:'417', TJK:'762', ARM:'051', UZB:'860', PAK:'586' };
 
   const BLOCKS = [
-    { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', keys: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE','NOR','ESP','ITA','GRC','ROU','BRG','HUN','CZE']memberssrs: '32 страны (США, Канада, Британия, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -15, zoom: 2 },
-    { id: 'brics', cat: 'Экономический блок', name: 'БРИКС+', color: '#16a34a', keys: ['RUS','CHN','IND','BRA','ZAF','IRN','EGY'], members: 'Россия, Китай, Индия, Бразилия, ЮАР, ОАЭ, Иран, Египет, Эфиопия, Индонезия', desc: 'Крупнейшие развивающиеся экономики мира (>35% мирового ВВП по ППС), расчёты в нацвалютах.', lat: 22, lng: 65, zoom: 2 },
-    { id: 'odkb', cat: 'Военный блок', name: 'ОДКБ', color: '#dc2626', keys: ['RUS','BLR','KAZ'], members: 'Россия, Беларусь, Казахстан, Киргизия, Таджикистан', desc: 'Евразийский военно-политический союз (ст. 4: агрессия против одного — агрессия против всех).', lat: 55, lng: 75, zoom: 3 },
-    { id: 'eaeu', cat: 'Экономический блок', name: 'ЕАЭС', color: '#d97706', keys: ['RUS','BLR','KAZ'], members: 'Россия, Беларусь, Казахстан, Армения, Киргизия', desc: 'Единый таможенный тариф, свобода движения товаров, услуг, капитала и рабочей силы.', lat: 55, lng: 75, zoom: 3 },
-    { id: 'eu', cat: 'Экономико-политический блок', name: 'Европейский союз (ЕС)', color: '#4f46e5', keys: ['FRA','DEU','POL','FIN','SWE'], members: '27 государств Европы', desc: 'Единый внутренний рынок, Шенгенская зона и общая валюта евро.', lat: 52, lng: 12, zoom: 4 },
-    { id: 'sco', cat: 'Региональный блок', name: 'ШОС', color: '#9333ea', keys: ['RUS','CHN','IND','KAZ','IRN','BLR'], members: 'Россия, Китай, Индия, Пакистан, Казахстан, Узбекистан, Киргизия, Таджикистан, Иран, Беларусь', desc: 'Крупнейшая евразийская организация безопасности, энергетики и транспорта.', lat: 40, lng: 80, zoom: 2 }
+    { id: 'nato', cat: 'Военный блок', name: 'НАТО', color: '#0284c7', keys: ['USA','CAN','GBR','FRA','DEU','POL','TUR','FIN','SWE','NOR','ESP','ITA','GRC','ROU','BGR','HUN','CZE'], members: '32 страны (США, Канада, Британия, Франция, Германия, Польша, Турция, Финляндия, Швеция и др.)', desc: 'Военно-политический блок Северной Америки и Европы. Статья 5 — коллективная оборона.', lat: 48, lng: -15, zoom: 2 },
+    { id: 'brics', cat: 'Экономический блок', name: 'БРИКС+', color: '#16a34a', keys: ['RUS','CHN','IND','BRA','ZAF','ARE','IRN','EGY','ETH','IDN'], members: 'Россия, Китай, Индия, Бразилия, ЮАР, ОАЭ, Иран, Египет, Эфиопия, Индонезия', desc: 'Крупнейшие развивающиеся экономики мира (>35% мирового ВВП по ППС), расчёты в нацвалютах.', lat: 22, lng: 65, zoom: 2 },
+    { id: 'odkb', cat: 'Военный блок', name: 'ОДКБ', color: '#dc2626', keys: ['RUS','BLR','KAZ','KGZ','TJK'], members: 'Россия, Беларусь, Казахстан, Киргизия, Таджикистан', desc: 'Евразийский военно-политический союз (ст. 4: агрессия против одного — агрессия против всех).', lat: 55, lng: 75, zoom: 3 },
+    { id: 'eaeu', cat: 'Экономический блок', name: 'ЕАЭС', color: '#d97706', keys: ['RUS','BLR','KAZ','ARM','KGZ'], members: 'Россия, Беларусь, Казахстан, Армения, Киргизия', desc: 'Единый таможенный тариф, свобода движения товаров, услуг, капитала и рабочей силы.', lat: 55, lng: 75, zoom: 3 },
+    { id: 'eu', cat: 'Экономико-политический блок', name: 'Европейский союз (ЕС)', color: '#4f46e5', keys: ['FRA','DEU','ITA','ESP','POL','ROU','GRC','CZE','SWE','HUN','BGR','FIN'], members: '27 государств Европы', desc: 'Единый внутренний рынок, Шенгенская зона и общая валюта евро.', lat: 52, lng: 12, zoom: 4 },
+    { id: 'sco', cat: 'Региональный блок', name: 'ШОС', color: '#9333ea', keys: ['RUS','CHN','IND','PAK','KAZ','UZB','KGZ','TJK','IRN','BLR'], members: 'Россия, Китай, Индия, Пакистан, Казахстан, Узбекистан, Киргизия, Таджикистан, Иран, Беларусь', desc: 'Крупнейшая евразийская организация безопасности, энергетики и транспорта.', lat: 40, lng: 80, zoom: 2 }
   ];
 
   const COUNTRIES = [
@@ -52,7 +29,6 @@
     { key: 'BRA', name: '🇧🇷 Бразилия', region: 'Америка', gov: 'Президентская республика • Федерация', blocks: 'БРИКС+, МЕРКОСУР', desc: 'Крупнейшая страна Южной Америки, мировой гигант агроэкспорта.', lat: -10, lng: -52, zoom: 3 }
   ];
 
-  const ISO_NUM = { RUS:'643', CHN:'156', USA:'840', CAN:'124', FRA:'250', DEU:'276', GBR:'826', POL:'616', TUR:'792', FIN:'246', SWE:'752', IND:'356', BRA:'076', ZAF:'710', DZA:'012', EGY:'818', IRN:'364', BLR:'112', KAZ:'398', SAU:'682', JPN:'392', NOR:'578', ESP:'724', ITA:'380', GRC:'300', ROU:'642', BGR:'100', HUN:'348', CZE:'203', ARE:'784', ETH:'231', IDN:'360', KGZ:'417', TJK:'762', ARM:'051', UZB:'860', PAK:'586' };
   let activeGroup = null, realGeo = null;
 
   async function loadRealBorders() {
@@ -80,14 +56,11 @@
   }
   function clearG(m) { if (activeGroup && m) m.removeLayer(activeGroup); activeGroup = L.layerGroup().addTo(m); }
 
-  function drawKeys(m, keys, color, popupHtml) {
-    if (realGeo) {
-      const nums = keys.map(k => ISO_NUM[k]).filter(Boolean);
-      const fc = { type: 'FeatureCollection', features: realGeo.features.filter(f => nums.includes(String(f.id).padStart(3, '0'))) };
-      L.geoJSON(fc, { style: { color: color, weight: 1.5, fillColor: color, fillOpacity: 0.38 } }).addTo(activeGroup).bindPopup(popupHtml);
-    } else {
-      keys.forEach(k => { if (POLY[k]) L.polygon(POLY[k], { color: color, weight: 2, fillColor: color, fillOpacity: 0.38 }).addTo(activeGroup).bindPopup(popupHtml); });
-    }
+  function drawKeys(keys, color, popupHtml) {
+    if (!realGeo) return;
+    const nums = keys.map(k => ISO_NUM[k]).filter(Boolean);
+    const fc = { type: 'FeatureCollection', features: realGeo.features.filter(f => nums.includes(String(f.id).padStart(3, '0'))) };
+    L.geoJSON(fc, { style: { color: color, weight: 1.5, fillColor: color, fillOpacity: 0.38 } }).addTo(activeGroup).bindPopup(popupHtml);
   }
 
   window.paintBlock = async function(id) {
@@ -95,7 +68,7 @@
     if (!b || !m || !window.L) return;
     await loadRealBorders();
     clearG(m);
-    drawKeys(m, b.keys, b.color, `<b>${b.name}</b><br><small>${b.members}</small>`);
+    drawKeys(b.keys, b.color, `<b>${b.name}</b><br><small>${b.members}</small>`);
     m.setView(new L.LatLng(b.lat, b.lng), b.zoom);
     L.popup().setLatLng(new L.LatLng(b.lat, b.lng)).setContent(`<b>${b.name}</b><br><small>${b.desc}</small>`).openOn(m);
   };
@@ -106,7 +79,7 @@
     await loadRealBorders();
     clearG(m);
     const pop = `<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`;
-    drawKeys(m, [c.key], '#0284c7', pop);
+    drawKeys([c.key], '#0284c7', pop);
     m.setView(new L.LatLng(c.lat, c.lng), c.zoom);
     L.popup().setLatLng(new L.LatLng(c.lat, c.lng)).setContent(pop).openOn(m);
   };
@@ -115,7 +88,7 @@
     const m = goMap(); if (!m || !window.L) return;
     await loadRealBorders();
     clearG(m);
-    COUNTRIES.forEach(c => drawKeys(m, [c.key], '#0ea5e9', `<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`));
+    COUNTRIES.forEach(c => drawKeys([c.key], '#0ea5e9', `<b>${c.name}</b><br><i>${c.gov}</i><br><b>Блоки:</b> ${c.blocks}<br><small>${c.desc}</small>`));
     m.setView(new L.LatLng(20, 0), 2);
   };
 
